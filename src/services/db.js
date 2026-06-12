@@ -1,0 +1,230 @@
+const { createClient } = require('@supabase/supabase-js');
+const WebSocket = require('ws');
+global.WebSocket = WebSocket;
+require('dotenv').config();
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false }
+});
+
+// --- LGPD / Contatos Conhecidos ---
+async function verificarLgpd(numero) {
+    const now = Date.now();
+    const { data } = await supabase.from('known_numbers').select('lgpdAccepted').eq('numero', numero);
+    if (!data || data.length === 0) {
+        await supabase.from('known_numbers').insert([
+            { numero, firstSeenAt: now, lastSeenAt: now }
+        ]);
+        return false;
+    }
+    return data[0].lgpdAccepted;
+}
+
+async function aceitarLgpd(numero) {
+    await supabase.from('known_numbers').update({ lgpdAccepted: true }).eq('numero', numero);
+}
+
+// --- Controle de Sessão ---
+async function obterSessao(numero) {
+    const now = Date.now();
+    const { data } = await supabase.from('sessions').select('*').eq('numero', numero);
+    if (!data || data.length === 0) return null;
+    const row = data[0];
+
+    if (Number(row.expiresAt) < now) {
+        await supabase.from('sessions').delete().eq('numero', numero);
+        return null;
+    }
+    return row;
+}
+
+async function criarSessao(numero, etapa = 'INICIO') {
+    const now = Date.now();
+    const expiresAt = now + 10 * 60 * 1000;
+    await supabase.from('sessions').upsert(
+        { numero, etapa, createdAt: now, expiresAt, docAttempts: 0, codeAttempts: 0 },
+        { onConflict: 'numero' }
+    );
+    return { numero, etapa };
+}
+
+async function atualizarSessao(numero, campos) {
+    const now = Date.now();
+    campos.expiresAt = now + 10 * 60 * 1000;
+    await supabase.from('sessions').update(campos).eq('numero', numero);
+}
+
+async function deletarSessao(numero) {
+    await supabase.from('sessions').delete().eq('numero', numero);
+}
+
+// --- Pesquisa de Satisfação (CSAT) ---
+async function registrarFeedback(numero, score) {
+    const now = Date.now();
+    await supabase.from('feedback_scores').upsert(
+        { numero, score, createdAt: now, updatedAt: now },
+        { onConflict: 'numero' }
+    );
+}
+
+async function getExpiredSessions() {
+    const now = Date.now();
+    const { data } = await supabase.from('sessions').select('numero').lt('expiresAt', now);
+    return data ? data.map(row => row.numero) : [];
+}
+
+async function deleteExpiredSessions(numeros) {
+    if (numeros.length === 0) return;
+    await supabase.from('sessions').delete().in('numero', numeros);
+}
+
+// --- Histórico de Entregas (Métricas de Conversão) ---
+async function registrarEntregaPdf(numero) {
+    const now = Date.now();
+    try {
+        await supabase.from('pdf_deliveries').insert([{ numero, createdAt: now }]);
+    } catch (err) {
+        console.error('db:registrar-entrega-pdf-erro:', err.message);
+    }
+}
+
+// --- Exames Pendentes ---
+async function salvarExamePendente(numero, documento, codigoAtendimento) {
+    const now = Date.now();
+    await supabase.from('pending_results').insert([
+        { numero, documento, codigoAtendimento, createdAt: now }
+    ]);
+}
+
+async function obterExamesPendentes() {
+    const umDiaAtras = Date.now() - 24 * 60 * 60 * 1000;
+    const { data } = await supabase.from('pending_results').select('*').gte('createdAt', umDiaAtras);
+    return data || [];
+}
+
+async function removerExamePendente(id) {
+    await supabase.from('pending_results').delete().eq('id', id);
+}
+
+async function removerExamesPendentesExpirados() {
+    const umDiaAtras = Date.now() - 24 * 60 * 60 * 1000;
+    await supabase.from('pending_results').delete().lt('createdAt', umDiaAtras);
+}
+
+// --- Obtenção de Métricas Consolidadas para Relatório Admin ---
+async function obterMetricasRelatorio() {
+    const now = new Date();
+    const inicioDia = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const inicioSemana = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).getTime();
+    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    try {
+        const { data: known } = await supabase.from('known_numbers').select('*');
+        const totalContatos = known ? known.length : 0;
+        const aceitosLgpd = known ? known.filter(k => k.lgpdAccepted).length : 0;
+        let mediaMensagens = 0;
+        if (known && known.length > 0) {
+            const sumMsg = known.reduce((acc, k) => acc + (k.messageCount || 0), 0);
+            mediaMensagens = sumMsg / known.length;
+        }
+
+        const { data: sessoes } = await supabase.from('sessions').select('*');
+        const totalSessoes = sessoes ? sessoes.length : 0;
+        
+        const etapasMap = {};
+        let docErros = 0;
+        let codeErros = 0;
+        if (sessoes) {
+            sessoes.forEach(s => {
+                etapasMap[s.etapa] = (etapasMap[s.etapa] || 0) + 1;
+                if (s.docAttempts > 0) docErros++;
+                if (s.codeAttempts > 0) codeErros++;
+            });
+        }
+        const distribuicaoEtapas = Object.keys(etapasMap).map(etapa => ({ etapa, total: etapasMap[etapa] }));
+        const totalDificuldades = docErros + codeErros;
+
+        const { data: feedbacks } = await supabase.from('feedback_scores').select('*');
+        let fb = { total: 0, media: 0, score_5: 0, score_4: 0, score_3: 0, score_2: 0, score_1: 0 };
+        if (feedbacks && feedbacks.length > 0) {
+            fb.total = feedbacks.length;
+            const sumScore = feedbacks.reduce((acc, f) => {
+                fb[`score_${f.score}`] = (fb[`score_${f.score}`] || 0) + 1;
+                return acc + f.score;
+            }, 0);
+            fb.media = sumScore / feedbacks.length;
+        }
+
+        const { data: deliveries } = await supabase.from('pdf_deliveries').select('*');
+        let tempoMedioMs = 0;
+        if (deliveries && known) {
+            let totalTime = 0;
+            let countTime = 0;
+            deliveries.forEach(d => {
+                const k = known.find(x => x.numero === d.numero);
+                if (k) {
+                    totalTime += (d.createdAt - k.firstSeenAt);
+                    countTime++;
+                }
+            });
+            tempoMedioMs = countTime > 0 ? totalTime / countTime : 0;
+        }
+
+        const obterConversao = (timestampInicio) => {
+            if (!known) return { iniciados: 0, convertidos: 0, taxa: 0 };
+            const usersInPeriod = known.filter(k => k.firstSeenAt >= timestampInicio);
+            const iniciados = usersInPeriod.length;
+            const convertidos = usersInPeriod.filter(k => deliveries && deliveries.some(d => d.numero === k.numero)).length;
+            const taxa = iniciados === 0 ? 0 : Math.round((convertidos / iniciados) * 100);
+            return { iniciados, convertidos, taxa };
+        };
+
+        const hoje = obterConversao(inicioDia);
+        const semana = obterConversao(inicioSemana);
+        const mes = obterConversao(inicioMes);
+
+        return {
+            contatos: { total: totalContatos, aceitosLgpd, mediaMensagens },
+            sessoes: {
+                total: totalSessoes,
+                etapas: distribuicaoEtapas,
+                comDificuldade: totalDificuldades,
+                dificuldades: { docErros, codeErros }
+            },
+            feedback: {
+                total: fb.total,
+                media: fb.media,
+                breakdown: {
+                    5: fb.score_5,
+                    4: fb.score_4,
+                    3: fb.score_3,
+                    2: fb.score_2,
+                    1: fb.score_1
+                }
+            },
+            conversao: { hoje, semana, mes },
+            tempoMedioMs
+        };
+    } catch (err) {
+        console.error('Erro ao obter métricas de relatório:', err.message);
+        return null;
+    }
+}
+
+module.exports = {
+    verificarLgpd,
+    aceitarLgpd,
+    obterSessao,
+    criarSessao,
+    atualizarSessao,
+    deletarSessao,
+    registrarFeedback,
+    getExpiredSessions,
+    deleteExpiredSessions,
+    registrarEntregaPdf,
+    obterMetricasRelatorio,
+    salvarExamePendente,
+    obterExamesPendentes,
+    removerExamePendente,
+    removerExamesPendentesExpirados
+};
