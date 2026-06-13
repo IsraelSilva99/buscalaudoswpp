@@ -6,7 +6,7 @@ const TEXTOS = {
     LGPD_TERMOS: 'Para garantir a segurança dos seus dados, por favor leia nosso termo de privacidade no documento acima.',
     LGPD_PERGUNTA: 'O senhor(a) concorda com os termos para podermos continuar?',
     LGPD_BLOQUEIO: 'Compreendo. Mas, por regras de segurança, só posso enviar o exame se os termos forem aceitos. Se mudar de ideia, é só me mandar um "Oi" novamente!',
-    PEDIR_DOC: 'Por favor, digite apenas os números do seu *PREC-CP/PASS*.\n\nPor exemplo: 123456700',
+    PEDIR_DOC: 'Por favor, digite apenas os números do seu *PREC-CP/PASS*.',
     BUSCANDO: 'Só um instante, por favor. Estou buscando o seu arquivo...',
     PEDIR_CODIGO: 'Agora, para garantir que só o senhor(a) acesse o resultado, por favor, digite o seu *Nº de Atendimento*.',
     ERRO_DOC_NAO_ENCONTRADO: 'Poxa, não consegui achar nenhum exame com esse número. O senhor(a) poderia conferir e digitar os números do seu *PREC-CP/PASS* novamente, por favor?',

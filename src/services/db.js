@@ -69,8 +69,8 @@ async function registrarFeedback(numero, score) {
 
 async function getExpiredSessions() {
     const now = Date.now();
-    const { data } = await supabase.from('sessions').select('numero').lt('expiresAt', now);
-    return data ? data.map(row => row.numero) : [];
+    const { data } = await supabase.from('sessions').select('numero, etapa').lt('expiresAt', now);
+    return data || [];
 }
 
 async function deleteExpiredSessions(numeros) {
@@ -82,7 +82,12 @@ async function deleteExpiredSessions(numeros) {
 async function registrarEntregaPdf(numero) {
     const now = Date.now();
     try {
-        await supabase.from('pdf_deliveries').insert([{ numero, createdAt: now }]);
+        const { data } = await supabase.from('sessions').select('createdAt').eq('numero', numero);
+        let timeTakenMs = 0;
+        if (data && data.length > 0) {
+            timeTakenMs = now - data[0].createdAt;
+        }
+        await supabase.from('pdf_deliveries').insert([{ numero, createdAt: now, timeTakenMs }]);
     } catch (err) {
         console.error('db:registrar-entrega-pdf-erro:', err.message);
     }
@@ -91,6 +96,19 @@ async function registrarEntregaPdf(numero) {
 // --- Exames Pendentes ---
 async function salvarExamePendente(numero, documento, codigoAtendimento) {
     const now = Date.now();
+    
+    // Verifica se o exame já está na fila de pendentes para esse usuário
+    const { data } = await supabase
+        .from('pending_results')
+        .select('id')
+        .eq('numero', numero)
+        .eq('codigoAtendimento', codigoAtendimento);
+        
+    if (data && data.length > 0) {
+        // Já existe, não insere duplicado
+        return;
+    }
+
     await supabase.from('pending_results').insert([
         { numero, documento, codigoAtendimento, createdAt: now }
     ]);
@@ -122,11 +140,6 @@ async function obterMetricasRelatorio() {
         const { data: known } = await supabase.from('known_numbers').select('*');
         const totalContatos = known ? known.length : 0;
         const aceitosLgpd = known ? known.filter(k => k.lgpdAccepted).length : 0;
-        let mediaMensagens = 0;
-        if (known && known.length > 0) {
-            const sumMsg = known.reduce((acc, k) => acc + (k.messageCount || 0), 0);
-            mediaMensagens = sumMsg / known.length;
-        }
 
         const { data: sessoes } = await supabase.from('sessions').select('*');
         const totalSessoes = sessoes ? sessoes.length : 0;
@@ -157,34 +170,35 @@ async function obterMetricasRelatorio() {
 
         const { data: deliveries } = await supabase.from('pdf_deliveries').select('*');
         let tempoMedioMs = 0;
-        if (deliveries && known) {
-            let totalTime = 0;
-            let countTime = 0;
-            deliveries.forEach(d => {
-                const k = known.find(x => x.numero === d.numero);
-                if (k) {
-                    totalTime += (d.createdAt - k.firstSeenAt);
-                    countTime++;
-                }
-            });
-            tempoMedioMs = countTime > 0 ? totalTime / countTime : 0;
+        if (deliveries && deliveries.length > 0) {
+            const validDeliveries = deliveries.filter(d => d.timeTakenMs > 0);
+            if (validDeliveries.length > 0) {
+                const totalTime = validDeliveries.reduce((acc, d) => acc + d.timeTakenMs, 0);
+                tempoMedioMs = totalTime / validDeliveries.length;
+            }
         }
 
         const obterConversao = (timestampInicio) => {
-            if (!known) return { iniciados: 0, convertidos: 0, taxa: 0 };
+            const entregues = deliveries ? deliveries.filter(d => d.createdAt >= timestampInicio).length : 0;
+            
+            if (!known) return { entregues, iniciados: 0, convertidos: 0, taxa: 'N/D' };
             const usersInPeriod = known.filter(k => k.firstSeenAt >= timestampInicio);
             const iniciados = usersInPeriod.length;
             const convertidos = usersInPeriod.filter(k => deliveries && deliveries.some(d => d.numero === k.numero)).length;
-            const taxa = iniciados === 0 ? 0 : Math.round((convertidos / iniciados) * 100);
-            return { iniciados, convertidos, taxa };
+            const taxa = iniciados === 0 ? 'N/D' : Math.round((convertidos / iniciados) * 100);
+            
+            return { entregues, iniciados, convertidos, taxa };
         };
 
         const hoje = obterConversao(inicioDia);
         const semana = obterConversao(inicioSemana);
         const mes = obterConversao(inicioMes);
 
+        const { data: pending } = await supabase.from('pending_results').select('id');
+        const examesPendentes = pending ? pending.length : 0;
+
         return {
-            contatos: { total: totalContatos, aceitosLgpd, mediaMensagens },
+            contatos: { total: totalContatos, aceitosLgpd },
             sessoes: {
                 total: totalSessoes,
                 etapas: distribuicaoEtapas,
@@ -203,7 +217,8 @@ async function obterMetricasRelatorio() {
                 }
             },
             conversao: { hoje, semana, mes },
-            tempoMedioMs
+            tempoMedioMs,
+            examesPendentes
         };
     } catch (err) {
         console.error('Erro ao obter métricas de relatório:', err.message);

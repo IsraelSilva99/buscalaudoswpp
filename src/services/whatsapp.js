@@ -174,9 +174,9 @@ async function enviarBotaoLink(to, text, buttonTitle, url) {
 
 // Envia botão interativo para laudo pronto
 async function enviarBotaoPDF(to, documento, codigoAtendimento) {
-    const text = `Boas notícias! O laudo do seu exame (Protocolo: ${codigoAtendimento}) acabou de ficar pronto.\n\nPosso te enviar o PDF agora?`;
+    const text = `Boas notícias! O laudo do seu exame ${codigoAtendimento} acabou de ficar pronto.\n\nPosso te enviar o PDF agora?`;
     const payload = `SEND_PDF_${documento}_${codigoAtendimento}`;
-    
+
     try {
         await axios.post(META_URL, {
             messaging_product: 'whatsapp',
@@ -186,7 +186,7 @@ async function enviarBotaoPDF(to, documento, codigoAtendimento) {
             interactive: {
                 type: 'button',
                 body: { text },
-                action: { 
+                action: {
                     buttons: [
                         {
                             type: 'reply',

@@ -93,13 +93,16 @@ setInterval(async () => {
     try {
         const expiradas = await db.getExpiredSessions();
         if (expiradas.length > 0) {
-            for (const numero of expiradas) {
-                await whatsapp.enviarTexto(
-                    numero,
-                    'Como ficamos um tempinho sem nos falar, encerrei este atendimento por motivos de segurança. Mas não se preocupe! Quando precisar acessar seu resultado, é só me mandar um "Oi" novamente.'
-                );
+            for (const sessao of expiradas) {
+                if (sessao.etapa !== 'AGUARDANDO_AVALIACAO') {
+                    await whatsapp.enviarTexto(
+                        sessao.numero,
+                        'Como ficamos um tempinho sem nos falar, encerrei este atendimento por motivos de segurança. Mas não se preocupe! Quando precisar acessar seu resultado, é só me mandar um "Oi" novamente.'
+                    );
+                }
             }
-            await db.deleteExpiredSessions(expiradas);
+            const numerosExpirados = expiradas.map(s => s.numero);
+            await db.deleteExpiredSessions(numerosExpirados);
         }
     } catch (err) {
         console.error('Erro ao limpar sessões expiradas:', err.message);

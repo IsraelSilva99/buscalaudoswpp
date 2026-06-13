@@ -169,7 +169,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
     if (laudoValido && laudoValido.error) {
         if (laudoValido.error === 'EM_ANALISE') {
             await db.salvarExamePendente(numero, sessao.documento, texto);
-            await whatsapp.enviarTexto(numero, 'O seu exame ainda está em análise no laboratório e o laudo não está pronto.\n\nVou ficar de olho e te aviso assim que ele ficar disponível (dentro das próximas 24 horas)!');
+            await whatsapp.enviarTexto(numero, 'Seu exame ainda está em análise. Se o laudo sair nas próximas 24 horas, enviarei um aviso automático por aqui. Após esse prazo, por favor, envie uma nova mensagem para consultar. Obrigado!');
             await db.deletarSessao(numero);
             return;
         } else {
@@ -294,19 +294,24 @@ async function processarComandoRelatorio(numero) {
 👥 *Contatos & Privacidade:*
 • Total de contatos: *${data.contatos.total}*
 • Aceitaram LGPD: *${data.contatos.aceitosLgpd}* (${data.contatos.total > 0 ? Math.round((data.contatos.aceitosLgpd / data.contatos.total) * 100) : 0}%)
-• Média de mensagens p/ contato: *${data.contatos.mediaMensagens.toFixed(1)}*
 
 💬 *Sessões Ativas no Momento:*
 • Total em andamento: *${data.sessoes.total}*
+• Aguardando laudo (Fila 24h): *${data.examesPendentes}*
 • Com dificuldades (erros): *${comDificuldade}*${descDificuldade}
 
 ⏳ *Estágios das Conversas:*
 ${etapasTexto}
-📈 *Conversão Real de Laudos (PDFs):*
-• *Hoje*: *${data.conversao.hoje.taxa}%* (${data.conversao.hoje.convertidos} de ${data.conversao.hoje.iniciados} novos)
-• *Esta Semana*: *${data.conversao.semana.taxa}%* (${data.conversao.semana.convertidos} de ${data.conversao.semana.iniciados} novos)
-• *Este Mês*: *${data.conversao.mes.taxa}%* (${data.conversao.mes.convertidos} de ${data.conversao.mes.iniciados} novos)
-• Tempo médio de entrega: *${tempoMedioTexto}*
+📉 *Métricas de Uso (Arquivos Baixados):*
+• Hoje: *${data.conversao.hoje.entregues}*
+• Esta Semana: *${data.conversao.semana.entregues}*
+• Este Mês: *${data.conversao.mes.entregues}*
+• Tempo médio do atendimento: *${tempoMedioTexto}*
+
+🎯 *Taxa de Conclusão (Novos Pacientes):*
+• Hoje: ${data.conversao.hoje.taxa === 'N/D' ? '*N/D* (Sem novos pacientes)' : `*${data.conversao.hoje.taxa}%* concluíram o fluxo`}
+• Esta Semana: ${data.conversao.semana.taxa === 'N/D' ? '*N/D* (Sem novos pacientes)' : `*${data.conversao.semana.taxa}%* concluíram o fluxo`}
+• Este Mês: ${data.conversao.mes.taxa === 'N/D' ? '*N/D* (Sem novos pacientes)' : `*${data.conversao.mes.taxa}%* concluíram o fluxo`}
 
 ⭐ *Avaliações dos Pacientes:*
 • Total recebidas: *${feedbackTotal}*
