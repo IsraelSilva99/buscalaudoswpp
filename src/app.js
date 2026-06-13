@@ -39,6 +39,16 @@ app.post('/webhook', async (req, res) => {
         // Ignora status de mensagens ou mensagens de sistema
         if (!msg || !msg.from) return;
 
+        // Ignora mensagens muito antigas (ex: a Meta reenvia um backlog quando o ngrok cai e volta)
+        if (msg.timestamp) {
+            const msgTimestamp = parseInt(msg.timestamp, 10);
+            const now = Math.floor(Date.now() / 1000); // Segundos
+            if (now - msgTimestamp > 180) { // Mais velha que 3 minutos
+                console.log(`Mensagem antiga ignorada (Backlog Meta): ${msg.id}`);
+                return;
+            }
+        }
+
         // Evita processar a mesma mensagem duas vezes (Meta Retries)
         if (processedMessages.has(msg.id)) {
             console.log(`Mensagem duplicada ignorada (Meta Retry): ${msg.id}`);
