@@ -10,10 +10,10 @@ const TEXTOS = {
     BUSCANDO: 'Só um instante, por favor. Estou buscando o seu arquivo...',
     PEDIR_CODIGO: 'Agora, para garantir que só o senhor(a) acesse o resultado, por favor, digite o seu *Nº de Atendimento*.',
     ERRO_DOC_NAO_ENCONTRADO: 'Poxa, não consegui achar nenhum exame com esse número. O senhor(a) poderia conferir e digitar os números do seu *PREC-CP/PASS* novamente, por favor?',
-    ERRO_TENTATIVAS: 'Por motivos de segurança, o sistema suspendeu este atendimento devido às várias tentativas incorretas.\n\nEm caso de dúvidas ou problemas com o seu protocolo, por favor, entre em contato direto com o nosso laboratório no telefone *(11) 3278-4010*.',
-    MENSAGEM_BLOQUEADO: 'Seu acesso está temporariamente suspenso por medidas de segurança devido a várias tentativas de acesso inválidas.\n\nPor favor, aguarde o fim do prazo de bloqueio ou entre em contato com o laboratório no telefone *(11) 3278-4010*.',
+    ERRO_TENTATIVAS: 'Por medidas de segurança e proteção dos seus dados, este atendimento precisou ser pausado temporariamente após algumas tentativas sem sucesso.\n\nO senhor(a) poderá tentar novamente em breve mandando um "Oi". Em caso de dúvidas, nossa equipe está à disposição no telefone *(11) 3278-4010.*',
+    MENSAGEM_BLOQUEADO: 'Por medidas de segurança e proteção dos seus dados, este atendimento precisou ser pausado temporariamente após algumas tentativas sem sucesso.\n\nO senhor(a) poderá tentar novamente em breve mandando um "Oi". Em caso de dúvidas, nossa equipe está à disposição no telefone *(11) 3278-4010.*',
     CODIGO_INVALIDO: 'O número não bateu. Por favor, dê uma olhadinha no seu papel de protocolo e digite o número de atendimento mais uma vez.',
-    PDF_ENVIADO: 'Prontinho! Aqui está o resultado do seu exame. 📄\nÉ só tocar no arquivo acima para abrir e ler.',
+    PDF_ENVIADO: 'Prontinho! Aqui está o resultado do seu exame.\nÉ só tocar no arquivo acima para abrir e ler.',
     PESQUISA_SATISFACAO: 'Sua opinião é muito importante para nós!\nDe 1 a 5, qual nota o senhor(a) daria para o nosso atendimento hoje?',
     FIM_ATENDIMENTO: 'Agradeço muito pela sua avaliação! Foi um prazer ajudar. O HMASP deseja a você muita saúde! Se precisar de mim novamente no futuro, é só mandar um "Oi".'
 };
