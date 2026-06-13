@@ -10,6 +10,13 @@ async function processarMensagem(numero, textoRecebido, messageId) {
     // Aciona o efeito digitando oficial da v21.0
     await whatsapp.enviarDigitando(messageId);
 
+    // Verifica se está bloqueado por brute-force
+    const isBlocked = await db.verificarBloqueio(numero);
+    if (isBlocked) {
+        await whatsapp.enviarTexto(numero, TEXTOS.MENSAGEM_BLOQUEADO);
+        return;
+    }
+
     const texto = textoRecebido.trim();
     const textoNormalizado = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -139,7 +146,7 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
         const docAttempts = (sessao.docAttempts || 0) + 1;
         if (docAttempts >= 3) {
             await whatsapp.enviarTexto(numero, TEXTOS.ERRO_TENTATIVAS);
-            await db.deletarSessao(numero);
+            await db.bloquearContato(numero);
         } else {
             await db.atualizarSessao(numero, { docAttempts });
             await whatsapp.enviarTexto(numero, TEXTOS.ERRO_DOC_NAO_ENCONTRADO);
@@ -176,7 +183,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
             const codeAttempts = (sessao.codeAttempts || 0) + 1;
             if (codeAttempts >= 3) {
                 await whatsapp.enviarTexto(numero, TEXTOS.ERRO_TENTATIVAS);
-                await db.deletarSessao(numero);
+                await db.bloquearContato(numero);
             } else {
                 await db.atualizarSessao(numero, { codeAttempts });
                 await whatsapp.enviarTexto(numero, TEXTOS.CODIGO_INVALIDO);
@@ -193,7 +200,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
         const codeAttempts = (sessao.codeAttempts || 0) + 1;
         if (codeAttempts >= 3) {
             await whatsapp.enviarTexto(numero, TEXTOS.ERRO_TENTATIVAS);
-            await db.deletarSessao(numero);
+            await db.bloquearContato(numero);
         } else {
             await db.atualizarSessao(numero, { codeAttempts });
             await whatsapp.enviarTexto(numero, TEXTOS.CODIGO_INVALIDO);

@@ -24,6 +24,40 @@ async function aceitarLgpd(numero) {
     await supabase.from('known_numbers').update({ lgpdAccepted: true }).eq('numero', numero);
 }
 
+// --- Proteção Anti Brute-Force ---
+async function verificarBloqueio(numero) {
+    const { data } = await supabase.from('known_numbers').select('blockedUntil').eq('numero', numero);
+    if (data && data.length > 0) {
+        const blockedUntil = Number(data[0].blockedUntil || 0);
+        return blockedUntil > Date.now();
+    }
+    return false;
+}
+
+async function bloquearContato(numero) {
+    // Busca blockCount atual
+    const { data } = await supabase.from('known_numbers').select('blockCount').eq('numero', numero);
+    let blockCount = 0;
+    if (data && data.length > 0) {
+        blockCount = Number(data[0].blockCount || 0);
+    }
+    
+    // Incrementa contagem de bloqueios
+    blockCount += 1;
+    
+    // Exponential backoff
+    let minutosBloqueio = 30; // 1º bloqueio: 30 minutos
+    if (blockCount === 2) minutosBloqueio = 120; // 2º bloqueio: 2 horas
+    if (blockCount >= 3) minutosBloqueio = 1440; // 3º bloqueio em diante: 24 horas
+    
+    const blockedUntil = Date.now() + (minutosBloqueio * 60 * 1000);
+    
+    await supabase.from('known_numbers').update({ blockCount, blockedUntil }).eq('numero', numero);
+    
+    // Exclui a sessão para zerar tentativas e obrigar a recomeçar
+    await deletarSessao(numero);
+}
+
 // --- Controle de Sessão ---
 async function obterSessao(numero) {
     const now = Date.now();
@@ -229,6 +263,8 @@ async function obterMetricasRelatorio() {
 module.exports = {
     verificarLgpd,
     aceitarLgpd,
+    verificarBloqueio,
+    bloquearContato,
     obterSessao,
     criarSessao,
     atualizarSessao,
