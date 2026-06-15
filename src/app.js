@@ -119,30 +119,43 @@ setInterval(async () => {
     }
 }, 60 * 1000);
 
-// Verificação periódica de laudos pendentes (24h)
-const PENDING_INTERVAL = (process.env.PENDING_CHECK_INTERVAL_MINUTES || 15) * 60 * 1000;
-setInterval(async () => {
-    try {
-        const laudosApi = require('./services/laudos');
-        const whatsapp = require('./services/whatsapp');
-        
-        // Limpa pendentes que já passaram de 24h
-        await db.removerExamesPendentesExpirados();
-        
-        // Busca os pendentes que ainda estão na janela
-        const pendentes = await db.obterExamesPendentes();
-        for (const p of pendentes) {
-            const laudo = await laudosApi.obterPdfLaudo(p.documento, p.codigoAtendimento);
-            if (laudo && !laudo.error) {
-                // PDF ficou pronto!
-                await whatsapp.enviarBotaoPDF(p.numero, p.documento, p.codigoAtendimento);
-                await db.removerExamePendente(p.id);
+// Verificação periódica de laudos pendentes (Fila 24h) via CRON
+const cron = require('node-cron');
+const horariospendentes = process.env.PENDING_CHECK_HOURS || "09:00,12:00,15:00";
+const horas = horariospendentes.split(',').map(h => h.trim());
+
+horas.forEach(hora => {
+    const [h, m] = hora.split(':');
+    if (!h || !m) return;
+    
+    cron.schedule(`${m} ${h} * * *`, async () => {
+        try {
+            console.log(`[CRON] Iniciando checagem de laudos pendentes (${hora})`);
+            const laudosApi = require('./services/laudos');
+            const whatsapp = require('./services/whatsapp');
+            
+            // Limpa pendentes que já passaram de 24h
+            await db.removerExamesPendentesExpirados();
+            
+            // Busca os pendentes que ainda estão na janela
+            const pendentes = await db.obterExamesPendentes();
+            for (const p of pendentes) {
+                const laudo = await laudosApi.obterPdfLaudo(p.documento, p.codigoAtendimento);
+                if (laudo && !laudo.error) {
+                    // PDF ficou pronto!
+                    await whatsapp.enviarBotaoPDF(p.numero, p.documento, p.codigoAtendimento);
+                    await db.removerExamePendente(p.id);
+                }
             }
+            console.log(`[CRON] Checagem finalizada.`);
+        } catch (err) {
+            console.error('Erro na checagem de laudos pendentes (CRON):', err.message);
         }
-    } catch (err) {
-        console.error('Erro na checagem de laudos pendentes:', err.message);
-    }
-}, PENDING_INTERVAL);
+    }, {
+        scheduled: true,
+        timezone: "America/Sao_Paulo"
+    });
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Bot HMASP ativo e rodando na porta ${PORT}`);
