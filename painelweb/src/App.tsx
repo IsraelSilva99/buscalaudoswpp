@@ -194,11 +194,16 @@ export default function App() {
     if (!activeChatId || !text.trim()) return;
 
     try {
-      await supabase.from('chat_messages').insert([{
+      const { error } = await supabase.from('chat_messages').insert([{
         numero: activeChatId,
         role: 'supervisor',
-        mensagem: text
+        mensagem: text,
+        created_at: new Date().toISOString()
       }]);
+      if (error) {
+        console.error('Supabase Insert Error:', error);
+        alert(`Erro ao enviar: ${error.message}`);
+      }
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);
     }
