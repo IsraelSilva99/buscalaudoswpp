@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Chat, Message, PaletteConfig } from "./types";
 import Sidebar from "./components/Sidebar";
 import ActiveChat from "./components/ActiveChat";
