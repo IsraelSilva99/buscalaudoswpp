@@ -64,6 +64,17 @@ async function processarMensagem(numero, textoRecebido, messageId) {
         return;
     }
 
+    // 0. Intercepta respostas atrasadas de avaliação
+    if (texto.startsWith('nota_')) {
+        let nota = parseInt(texto.replace('nota_', ''));
+        if (!isNaN(nota) && nota >= 1 && nota <= 5) {
+            await db.registrarFeedback(numero, nota);
+            await whatsapp.enviarTexto(numero, TEXTOS.FIM_ATENDIMENTO);
+            if (sessao) await db.deletarSessao(numero);
+            return;
+        }
+    }
+
     // 0. Intercepta comando de relatório administrativo
     if (textoNormalizado === 'relatorio') {
         const adminNumbersStr = process.env.ADMIN_NUMBERS || '';
