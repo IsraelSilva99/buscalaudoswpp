@@ -85,12 +85,23 @@ export default function App() {
 
           if (chatIndex > -1) {
             const chat = newChats.splice(chatIndex, 1)[0];
-            const exists = chat.messages.some(m => m.id === formattedMessage.id);
-            if (!exists) {
-              chat.messages = [...chat.messages, formattedMessage];
-              chat.lastSeen = formattedMessage.timestamp;
-              if (activeChatId !== chat.id) {
-                chat.unreadCount += 1;
+            const optimisticIndex = chat.messages.findIndex(m => 
+              m.status === 'sent' && 
+              m.text === formattedMessage.text && 
+              m.sender === formattedMessage.sender
+            );
+            
+            if (optimisticIndex > -1) {
+              // Substitui a mensagem otimista pela real do servidor (trazendo o ID correto e status read)
+              chat.messages[optimisticIndex] = formattedMessage;
+            } else {
+              const exists = chat.messages.some(m => m.id === formattedMessage.id);
+              if (!exists) {
+                chat.messages = [...chat.messages, formattedMessage];
+                chat.lastSeen = formattedMessage.timestamp;
+                if (activeChatId !== chat.id) {
+                  chat.unreadCount += 1;
+                }
               }
             }
             newChats.unshift(chat);

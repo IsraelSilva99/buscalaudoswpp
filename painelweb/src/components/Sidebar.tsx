@@ -204,7 +204,7 @@ export default function Sidebar({
                     )}
 
                     <p className="truncate flex-1">
-                      {lastMsg ? lastMsg.text : chat.statusText}
+                      {lastMsg ? lastMsg.text : ""}
                     </p>
                   </div>
                 </div>
