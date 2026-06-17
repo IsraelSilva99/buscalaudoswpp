@@ -62,13 +62,25 @@ export default function App() {
           const chatIndex = prevChats.findIndex(c => c.id === newMsg.numero);
           let newChats = [...prevChats];
 
+          let text = newMsg.mensagem;
+          let msgType: "text" | "pdf" | "system" = "text";
+          
+          if (text.startsWith('[[PDF_FLAG]]')) {
+            text = text.replace('[[PDF_FLAG]]', '');
+            msgType = "pdf";
+          } else if (text.startsWith('[[SYSTEM_FLAG]]')) {
+            text = text.replace('[[SYSTEM_FLAG]]', '');
+            msgType = "system";
+          }
+
           const formattedMessage: Message = {
             id: newMsg.id,
             sender: (newMsg.role === 'assistant' || newMsg.role === 'supervisor') ? 'me' : 'them',
-            text: newMsg.mensagem,
+            text: text,
             timestamp: format(new Date(newMsg.created_at), 'HH:mm'),
             status: 'read',
-            type: 'text'
+            type: msgType,
+            rawRole: newMsg.role
           };
 
           if (chatIndex > -1) {
@@ -130,13 +142,25 @@ export default function App() {
 
     data.forEach(msg => {
       const isBotOrSupervisor = msg.role === 'assistant' || msg.role === 'supervisor';
+      let text = msg.mensagem;
+      let msgType: "text" | "pdf" | "system" = "text";
+      
+      if (text.startsWith('[[PDF_FLAG]]')) {
+        text = text.replace('[[PDF_FLAG]]', '');
+        msgType = "pdf";
+      } else if (text.startsWith('[[SYSTEM_FLAG]]')) {
+        text = text.replace('[[SYSTEM_FLAG]]', '');
+        msgType = "system";
+      }
+
       const formattedMessage: Message = {
         id: msg.id,
         sender: isBotOrSupervisor ? 'me' : 'them',
-        text: msg.mensagem,
+        text: text,
         timestamp: format(new Date(msg.created_at), 'HH:mm'),
         status: 'read',
-        type: 'text'
+        type: msgType,
+        rawRole: msg.role
       };
 
       const formatPhoneNumber = (num: string) => {
@@ -193,20 +217,19 @@ export default function App() {
   const handleSendMessage = async (text: string, type: string = "text") => {
     if (!activeChatId || !text.trim()) return;
 
-    let role = 'supervisor';
-    if (type === 'pdf') role = 'supervisor_pdf';
-    if (type === 'system') role = 'system';
+    let mensagemFinal = text;
+    if (type === 'pdf') mensagemFinal = '[[PDF_FLAG]]' + text;
+    if (type === 'system') mensagemFinal = '[[SYSTEM_FLAG]]' + text;
 
     try {
       const { error } = await supabase.from('chat_messages').insert([{
         numero: activeChatId,
-        role: role,
-        mensagem: text,
+        role: 'supervisor',
+        mensagem: mensagemFinal,
         created_at: new Date().toISOString()
       }]);
       if (error) {
         console.error('Supabase Insert Error:', error);
-        alert(`Erro ao enviar: ${error.message}`);
       }
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);

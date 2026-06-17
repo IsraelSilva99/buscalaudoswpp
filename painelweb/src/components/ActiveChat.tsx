@@ -46,6 +46,7 @@ export default function ActiveChat({
   const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   
   // Custom audio playback states
   const [activeAudioPlayingId, setActiveAudioPlayingId] = useState<string | null>(null);
@@ -53,6 +54,19 @@ export default function ActiveChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  let isHandover = false;
+  for (let i = chat.messages.length - 1; i >= 0; i--) {
+    const msg = chat.messages[i];
+    if (msg.rawRole === 'system' && msg.text === 'ATENDIMENTO_ENCERRADO') {
+      isHandover = false;
+      break;
+    }
+    if (msg.rawRole === 'supervisor' || msg.rawRole === 'supervisor_pdf') {
+      isHandover = true;
+      break;
+    }
+  }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,9 +191,9 @@ export default function ActiveChat({
           </div>
 
           <div>
-            <h2 className="text-xs font-semibold select-text flex items-center gap-1.5 {
+            <h2 className={`text-xs font-semibold select-text flex items-center gap-1.5 ${
               currentMode === 'dark' ? 'text-white' : 'text-[#111b21]'
-            }">
+            }`}>
               {chat.name}
             </h2>
             <p className="text-[10px] text-gray-400">
@@ -192,18 +206,28 @@ export default function ActiveChat({
 
         {/* Action button triggers for header */}
         <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1]">
-          <button 
-            onClick={() => {
-              if(confirm("Deseja encerrar o atendimento manual e devolver o controle ao bot?")) {
-                onSendMessage("ATENDIMENTO_ENCERRADO", "system");
-              }
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-md text-xs font-semibold transition-colors border border-red-500/20"
-            title="Devolver controle para o Bot"
-          >
-            <Bot className="w-4 h-4" />
-            <span className="hidden sm:inline">Finalizar Atendimento</span>
-          </button>
+          {isHandover && (
+            <button 
+              onClick={() => {
+                if (confirmEnd) {
+                  onSendMessage("ATENDIMENTO_ENCERRADO", "system");
+                  setConfirmEnd(false);
+                } else {
+                  setConfirmEnd(true);
+                  setTimeout(() => setConfirmEnd(false), 3000);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors border ${
+                confirmEnd 
+                  ? "bg-red-600 text-white border-red-600" 
+                  : "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/20"
+              }`}
+              title="Devolver controle para o Bot"
+            >
+              <Bot className="w-4 h-4" />
+              <span className="hidden sm:inline">{confirmEnd ? "Confirmar Encerramento?" : "Finalizar Atendimento"}</span>
+            </button>
+          )}
 
           <div className="w-[1px] h-5 bg-gray-300 dark:bg-gray-600/50"></div>
 
@@ -228,7 +252,7 @@ export default function ActiveChat({
           </span>
         </div>
 
-        {chat.messages.map((msg) => {
+        {chat.messages.filter(msg => msg.type !== 'system').map((msg) => {
           const isMe = msg.sender === "me";
           const formattedText = msg.text
             .replace(/\n/g, '<br />')

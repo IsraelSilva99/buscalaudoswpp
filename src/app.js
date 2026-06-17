@@ -170,27 +170,31 @@ supabasePanel.channel('painel-supervisor')
         const newMsg = payload.new;
         if (newMsg) {
             if (newMsg.role === 'supervisor') {
-                console.log(`[Painel] Enviando mensagem manual para ${newMsg.numero}`);
-                try {
-                    await db.criarSessao(newMsg.numero, 'ATENDIMENTO_HUMANO');
-                    await whatsapp.enviarTexto(newMsg.numero, newMsg.mensagem);
-                } catch (err) {
-                    console.error('[Painel] Erro ao enviar mensagem:', err.message);
-                }
-            } else if (newMsg.role === 'system' && newMsg.mensagem === 'ATENDIMENTO_ENCERRADO') {
-                console.log(`[Painel] Encerrando atendimento manual para ${newMsg.numero}`);
-                try {
-                    await db.deletarSessao(newMsg.numero);
-                } catch (err) {
-                    console.error('[Painel] Erro ao deletar sessao:', err.message);
-                }
-            } else if (newMsg.role === 'supervisor_pdf') {
-                console.log(`[Painel] Enviando PDF manual para ${newMsg.numero}`);
-                try {
-                    await db.criarSessao(newMsg.numero, 'ATENDIMENTO_HUMANO');
-                    await whatsapp.enviarDocumento(newMsg.numero, newMsg.mensagem, 'anexo_atendimento.pdf', 'Aqui está o documento que você solicitou.');
-                } catch (err) {
-                    console.error('[Painel] Erro ao enviar PDF:', err.message);
+                if (newMsg.mensagem.startsWith('[[SYSTEM_FLAG]]')) {
+                    const sysCmd = newMsg.mensagem.replace('[[SYSTEM_FLAG]]', '');
+                    if (sysCmd === 'ATENDIMENTO_ENCERRADO') {
+                        console.log(`[Painel] Encerrando atendimento manual para ${newMsg.numero}`);
+                        try {
+                            await db.deletarSessao(newMsg.numero);
+                        } catch (err) {}
+                    }
+                } else if (newMsg.mensagem.startsWith('[[PDF_FLAG]]')) {
+                    const base64 = newMsg.mensagem.replace('[[PDF_FLAG]]', '');
+                    console.log(`[Painel] Enviando PDF manual para ${newMsg.numero}`);
+                    try {
+                        await db.criarSessao(newMsg.numero, 'ATENDIMENTO_HUMANO');
+                        await whatsapp.enviarDocumento(newMsg.numero, base64, 'anexo_atendimento.pdf', 'Aqui está o documento que você solicitou.', false);
+                    } catch (err) {
+                        console.error('[Painel] Erro ao enviar PDF:', err.message);
+                    }
+                } else {
+                    console.log(`[Painel] Enviando mensagem manual para ${newMsg.numero}`);
+                    try {
+                        await db.criarSessao(newMsg.numero, 'ATENDIMENTO_HUMANO');
+                        await whatsapp.enviarTexto(newMsg.numero, newMsg.mensagem, false);
+                    } catch (err) {
+                        console.error('[Painel] Erro ao enviar mensagem:', err.message);
+                    }
                 }
             }
         }

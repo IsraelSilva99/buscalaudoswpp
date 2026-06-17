@@ -10,6 +10,14 @@ async function processarMensagem(numero, textoRecebido, messageId) {
     // Salva no histórico para o Painel Web
     await db.salvarMensagemChat(numero, 'user', textoRecebido);
 
+    // Recupera Sessão
+    let sessao = await db.obterSessao(numero);
+
+    // Se estiver em atendimento humano, pausa fluxo do bot imediatamente (sem enviar "digitando")
+    if (sessao && sessao.etapa === 'ATENDIMENTO_HUMANO') {
+        return;
+    }
+
     // Aciona o efeito digitando oficial da v21.0
     await whatsapp.enviarDigitando(messageId);
 
@@ -69,9 +77,6 @@ async function processarMensagem(numero, textoRecebido, messageId) {
     // 1. Verifica Aceite da LGPD
     const lgpdAceito = await db.verificarLgpd(numero);
 
-    // Recupera Sessão
-    let sessao = await db.obterSessao(numero);
-
     if (!lgpdAceito) {
         return etapaLgpd(numero, texto, sessao);
     }
@@ -93,9 +98,6 @@ async function processarMensagem(numero, textoRecebido, messageId) {
             return etapaAguardandoCodigo(numero, texto, sessao);
         case 'AGUARDANDO_AVALIACAO':
             return etapaAvaliacao(numero, texto, sessao);
-        case 'ATENDIMENTO_HUMANO':
-            // Pausa o fluxo automático, deixando a conversa apenas para o atendente humano
-            return;
         default:
             await db.deletarSessao(numero);
             break;

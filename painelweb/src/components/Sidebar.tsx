@@ -145,8 +145,8 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Conversations List Scroll Container */}
-      <div className="flex-1 overflow-y-auto divided-y divide-gray-100 dark:divide-[#222e35]">
+      {/* 4. Chat List / Contacts Stream */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-gray-100 dark:divide-[#222e35]">
         {filteredChats.length === 0 ? (
           <div className="py-12 px-4 text-center text-xs text-gray-400">
             Nenhuma conversa correspondente encontrada.

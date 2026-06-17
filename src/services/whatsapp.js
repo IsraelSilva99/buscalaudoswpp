@@ -12,7 +12,7 @@ const headers = {
 };
 
 // Envia mensagem de texto simples
-async function enviarTexto(to, text) {
+async function enviarTexto(to, text, salvarNoBd = true) {
     try {
         await axios.post(META_URL, {
             messaging_product: 'whatsapp',
@@ -21,7 +21,9 @@ async function enviarTexto(to, text) {
             type: 'text',
             text: { body: text }
         }, { headers });
-        await db.salvarMensagemChat(to, 'assistant', text);
+        if (salvarNoBd) {
+            await db.salvarMensagemChat(to, 'assistant', text);
+        }
     } catch (err) {
         console.error('Erro ao enviar texto:', err.response?.data || err.message);
     }
@@ -95,7 +97,7 @@ async function enviarLista(to, bodyText, buttonText, sections) {
 }
 
 // Envia o arquivo PDF do laudo
-async function enviarDocumento(to, pdfBase64, filename, caption) {
+async function enviarDocumento(to, pdfBase64, filename, caption, salvarNoBd = true) {
     const FormData = require('form-data');
     try {
         // 1. Converte o base64 para Buffer e cria o FormData
@@ -127,7 +129,9 @@ async function enviarDocumento(to, pdfBase64, filename, caption) {
                 ...(caption ? { caption } : {})
             }
         }, { headers });
-        await db.salvarMensagemChat(to, 'assistant', `[PDF Enviado] ${filename}`);
+        if (salvarNoBd) {
+            await db.salvarMensagemChat(to, 'assistant', `[PDF Enviado] ${filename}`);
+        }
     } catch (err) {
         console.error('Erro ao enviar laudo PDF:', err.response?.data || err.message);
     }

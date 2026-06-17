@@ -4,7 +4,8 @@ export interface Message {
   text: string;
   timestamp: string;
   status: "sent" | "delivered" | "read";
-  type: "text" | "image" | "audio" | "tip";
+  type: "text" | "image" | "audio" | "tip" | "pdf" | "system";
+  rawRole?: string;
   fileDuration?: number; // duration in seconds for audio
   imageUrl?: string;
 }
