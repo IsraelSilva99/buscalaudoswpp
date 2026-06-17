@@ -246,7 +246,7 @@ export default function App() {
       let newChats = [...prevChats];
       const chatIndex = newChats.findIndex(c => c.id === activeChatId);
       if (chatIndex > -1) {
-        const chat = newChats.splice(chatIndex, 1)[0];
+        const chat = { ...newChats.splice(chatIndex, 1)[0] }; // Clona para evitar mutação no StrictMode
         const newMsg: Message = {
           id: msgId,
           sender: 'me',
