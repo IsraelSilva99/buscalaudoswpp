@@ -58,7 +58,7 @@ export default function ActiveChat({
   let isHandover = false;
   for (let i = chat.messages.length - 1; i >= 0; i--) {
     const msg = chat.messages[i];
-    if (msg.rawRole === 'system' && msg.text === 'ATENDIMENTO_ENCERRADO') {
+    if (msg.type === 'system' && msg.text === 'ATENDIMENTO_ENCERRADO') {
       isHandover = false;
       break;
     }
@@ -400,14 +400,6 @@ export default function ActiveChat({
           <div className={`absolute bottom-16 left-4 p-2 rounded-xl flex flex-col gap-2 shadow-lg border animate-slideUp text-center ${
             currentMode === "dark" ? "bg-[#1f2c34] border-[#2d3b43] text-gray-200" : "bg-white border-gray-100 text-[#111b21]"
           }`}>
-            <button 
-              id="attachment-btn-image"
-              onClick={handleSimulatedImageSend}
-              className="flex items-center gap-3 p-2.5 hover:bg-emerald-500/10 text-xs text-left rounded-lg transition-colors cursor-pointer"
-            >
-              <ImageIcon className="w-4 h-4 text-purple-500" />
-              <span>Inserir Foto Wallpaper Mock</span>
-            </button>
             <input 
               type="file" 
               accept="application/pdf" 
@@ -421,16 +413,6 @@ export default function ActiveChat({
             >
               <FileText className="w-4 h-4 text-blue-500" />
               <span>Anexar Arquivo PDF</span>
-            </button>
-            <button 
-              onClick={() => {
-                onSendMessage("Paleta_Hex_Oficial.json (1.2 KB)", "text");
-                setIsAttachmentOpen(false);
-              }}
-              className="flex items-center gap-3 p-2.5 hover:bg-emerald-500/10 text-xs text-left rounded-lg transition-colors cursor-pointer"
-            >
-              <Volume2 className="w-4 h-4 text-orange-500" />
-              <span>Código Configs</span>
             </button>
           </div>
         )}
