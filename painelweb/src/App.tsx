@@ -230,17 +230,19 @@ export default function App() {
       }
     });
 
-    // Sort by most recent
+    // Sort by absolute chronological order of the last message in `data` (which is already correctly sorted by DB)
     const sortedChats = Array.from(chatsMap.values()).sort((a, b) => {
-      const lastMsgA = a.messages[a.messages.length - 1];
-      const lastMsgB = b.messages[b.messages.length - 1];
-      if (!lastMsgA || !lastMsgB) return 0;
-      // We'd need actual dates to sort properly, but for simplicity assuming the DB returned them ordered by created_at ascending
-      return -1; // They are already constructed in chronological order, so just reverse the map insertion order conceptually
+      const lastMsgAId = a.messages[a.messages.length - 1]?.id;
+      const lastMsgBId = b.messages[b.messages.length - 1]?.id;
+      
+      const indexA = data.findIndex(d => d.id === lastMsgAId);
+      const indexB = data.findIndex(d => d.id === lastMsgBId);
+      
+      // We want descending order (newest top), so indexB - indexA
+      return indexB - indexA;
     });
 
-    // Actually, reverse the array to have newest at top
-    setChats(Array.from(chatsMap.values()).reverse());
+    setChats(sortedChats);
   };
 
   const handleToggleTheme = (theme: "light" | "dark") => {
