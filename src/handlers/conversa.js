@@ -93,6 +93,9 @@ async function processarMensagem(numero, textoRecebido, messageId) {
             return etapaAguardandoCodigo(numero, texto, sessao);
         case 'AGUARDANDO_AVALIACAO':
             return etapaAvaliacao(numero, texto, sessao);
+        case 'ATENDIMENTO_HUMANO':
+            // Pausa o fluxo automático, deixando a conversa apenas para o atendente humano
+            return;
         default:
             await db.deletarSessao(numero);
             break;

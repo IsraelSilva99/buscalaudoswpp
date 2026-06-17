@@ -190,13 +190,17 @@ export default function App() {
 
   const palette = currentPalette[currentMode];
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, type: string = "text") => {
     if (!activeChatId || !text.trim()) return;
+
+    let role = 'supervisor';
+    if (type === 'pdf') role = 'supervisor_pdf';
+    if (type === 'system') role = 'system';
 
     try {
       const { error } = await supabase.from('chat_messages').insert([{
         numero: activeChatId,
-        role: 'supervisor',
+        role: role,
         mensagem: text,
         created_at: new Date().toISOString()
       }]);

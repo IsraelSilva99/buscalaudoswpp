@@ -27,7 +27,7 @@ import { Chat, Message, PaletteConfig } from "../types";
 interface ActiveChatProps {
   chat: Chat;
   currentMode: "light" | "dark";
-  onSendMessage: (text: string, type?: "text" | "audio" | "image" | "tip") => void;
+  onSendMessage: (text: string, type?: "text" | "audio" | "image" | "tip" | "pdf" | "system") => void;
   isAITyping: boolean;
   onBackToMain: () => void;
   palette: PaletteConfig;
@@ -52,6 +52,28 @@ export default function ActiveChat({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert("O arquivo não pode exceder 10MB por segurança.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Data = reader.result?.toString().split(',')[1];
+      if (base64Data) {
+        onSendMessage(base64Data, "pdf");
+        setIsAttachmentOpen(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // reset input
+  };
 
   // Auto scroll to message bottom
   useEffect(() => {
@@ -169,15 +191,20 @@ export default function ActiveChat({
         </div>
 
         {/* Action button triggers for header */}
-        <div className="flex items-center gap-5 text-[#54656f] dark:text-[#aebac1]">
-          <button title="Chamada de Vídeo (Módulo Beta)" className="hover:bg-gray-200 dark:hover:bg-gray-700/40 p-1.5 rounded-full transition-colors cursor-pointer">
-            <Video className="w-5 h-5" />
+        <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1]">
+          <button 
+            onClick={() => {
+              if(confirm("Deseja encerrar o atendimento manual e devolver o controle ao bot?")) {
+                onSendMessage("ATENDIMENTO_ENCERRADO", "system");
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-md text-xs font-semibold transition-colors border border-red-500/20"
+            title="Devolver controle para o Bot"
+          >
+            <Bot className="w-4 h-4" />
+            <span className="hidden sm:inline">Finalizar Atendimento</span>
           </button>
-          
-          <button title="Telefonar (Módulo Beta)" className="hover:bg-gray-200 dark:hover:bg-gray-700/40 p-1.5 rounded-full transition-colors cursor-pointer">
-            <Phone className="w-4.5 h-4.5" />
-          </button>
-          
+
           <div className="w-[1px] h-5 bg-gray-300 dark:bg-gray-600/50"></div>
 
           <button title="Pesquisar Mensagem" className="hover:bg-gray-200 dark:hover:bg-gray-700/40 p-1.5 rounded-full transition-colors cursor-pointer">
@@ -232,6 +259,19 @@ export default function ActiveChat({
                     className="leading-relaxed select-text pr-10 text-[12.5px]"
                     dangerouslySetInnerHTML={{ __html: formattedText }}
                   />
+                )}
+                
+                {/* 1.5 If it's a PDF */}
+                {msg.type === "pdf" && (
+                  <div className="flex items-center gap-3 py-1 pr-8 text-[12.5px]">
+                    <div className="p-2 bg-red-500/10 rounded-lg">
+                      <FileText className="w-6 h-6 text-red-500" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-xs truncate max-w-[150px]">Arquivo em Anexo.pdf</span>
+                      <span className="text-[10px] text-gray-500">Documento PDF</span>
+                    </div>
+                  </div>
                 )}
 
                 {/* 2. If it is an image attachment */}
@@ -344,15 +384,19 @@ export default function ActiveChat({
               <ImageIcon className="w-4 h-4 text-purple-500" />
               <span>Inserir Foto Wallpaper Mock</span>
             </button>
+            <input 
+              type="file" 
+              accept="application/pdf" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileUpload} 
+            />
             <button 
-              onClick={() => {
-                onSendMessage("Documento_Esqueleto_DB.pdf (142 KB)", "text");
-                setIsAttachmentOpen(false);
-              }}
+              onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-3 p-2.5 hover:bg-emerald-500/10 text-xs text-left rounded-lg transition-colors cursor-pointer"
             >
               <FileText className="w-4 h-4 text-blue-500" />
-              <span>Anexar Planejador PDF</span>
+              <span>Anexar Arquivo PDF</span>
             </button>
             <button 
               onClick={() => {

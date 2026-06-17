@@ -72,8 +72,8 @@ export default function Sidebar({
       }`}>
         {/* Profile Avatar / Logo representation */}
         <div className="flex items-center gap-2">
-          <div className="relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
-            <img src="https://i.imgur.com/zN4LUCC.png" alt="Logo" className="w-full h-full object-cover" />
+          <div className="relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm border border-gray-200 dark:border-gray-700">
+            <img src="https://i.imgur.com/zN4LUCC.png" alt="Logo" className="w-full h-full object-cover rounded-full" />
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#202c33] rounded-full z-10"></span>
           </div>
           <span className="font-semibold text-xs text-emerald-500 tracking-wider">EnviaLaudos HMASP</span>
