@@ -84,7 +84,10 @@ export default function App() {
           };
 
           if (chatIndex > -1) {
-            const chat = newChats.splice(chatIndex, 1)[0];
+            // Imutabilidade profunda para forçar re-render do React (garante os ticks azuis na tela)
+            const chat = { ...newChats.splice(chatIndex, 1)[0] };
+            chat.messages = [...chat.messages];
+
             const optimisticIndex = chat.messages.findIndex(m => 
               m.status === 'sent' && 
               m.text === formattedMessage.text && 
@@ -92,12 +95,17 @@ export default function App() {
             );
             
             if (optimisticIndex > -1) {
-              // Substitui a mensagem otimista pela real do servidor (trazendo o ID correto e status read)
+              // Substitui a mensagem otimista pela real do servidor
               chat.messages[optimisticIndex] = formattedMessage;
             } else {
-              const exists = chat.messages.some(m => m.id === formattedMessage.id);
+              // Checagem agressiva para evitar duplicidade causada por React StrictMode e UUIDs perdidos
+              const exists = chat.messages.some(m => 
+                m.id === formattedMessage.id || 
+                (m.text === formattedMessage.text && m.sender === formattedMessage.sender && m.timestamp === formattedMessage.timestamp)
+              );
+              
               if (!exists) {
-                chat.messages = [...chat.messages, formattedMessage];
+                chat.messages.push(formattedMessage);
                 chat.lastSeen = formattedMessage.timestamp;
                 if (activeChatId !== chat.id) {
                   chat.unreadCount += 1;
