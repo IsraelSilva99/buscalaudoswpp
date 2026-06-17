@@ -122,11 +122,10 @@ export default function ActiveChat({
       currentMode === "dark" ? "bg-[#0b141a]" : "bg-[#efeae2]"
     }`}>
       
-      {/* Decorative WhatsApp Background Pattern overlay */}
       <div 
-        className="absolute inset-0 opacity-[0.06] pointer-events-none select-none z-0"
+        className={`absolute inset-0 pointer-events-none select-none z-0 ${currentMode === 'dark' ? 'opacity-[0.2]' : 'opacity-[0.08]'}`}
         style={{
-          backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
+          backgroundImage: `url("https://camo.githubusercontent.com/c42c83df2fd1e442ef1e0ed69cc20d21f65308fc2f0dca2a8035360738d49c8c/68747470733a2f2f7765622e77686174736170702e636f6d2f696d672f62672d636861742d74696c652d6461726b5f61346265353132653731393562366237333364393131306234303866303735642e706e67")`,
           backgroundSize: "400px"
         }}
       ></div>
@@ -204,7 +203,11 @@ export default function ActiveChat({
 
         {chat.messages.map((msg) => {
           const isMe = msg.sender === "me";
-          const formattedText = msg.text.replace(/\n/g, '<br />');
+          const formattedText = msg.text
+            .replace(/\n/g, '<br />')
+            .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            .replace(/~(.*?)~/g, '<del>$1</del>');
 
           return (
             <div 

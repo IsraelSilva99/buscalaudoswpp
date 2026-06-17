@@ -88,6 +88,7 @@ async function enviarLista(to, bodyText, buttonText, sections) {
                 }
             }
         }, { headers });
+        await db.salvarMensagemChat(to, 'assistant', `[Lista] ${bodyText}`);
     } catch (err) {
         console.error('Erro ao enviar lista:', err.response?.data || err.message);
     }
@@ -200,6 +201,7 @@ async function enviarBotaoPDF(to, documento, codigoAtendimento) {
                 }
             }
         }, { headers });
+        await db.salvarMensagemChat(to, 'assistant', `[Botões] ${text}`);
     } catch (err) {
         console.error('Erro ao enviar botão de PDF:', err.response?.data || err.message);
     }
