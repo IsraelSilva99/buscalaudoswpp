@@ -76,7 +76,7 @@ export default function Sidebar({
             W
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#202c33] rounded-full"></span>
           </div>
-          <span className="font-semibold text-xs text-emerald-500 tracking-wider">WHATS clone</span>
+          <span className="font-semibold text-xs text-emerald-500 tracking-wider">EnviaLaudos HMASP</span>
         </div>
 
         {/* Header action icons */}

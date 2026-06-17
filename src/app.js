@@ -160,3 +160,21 @@ horas.forEach(hora => {
 app.listen(PORT, () => {
     console.log(`🚀 Bot HMASP ativo e rodando na porta ${PORT}`);
 });
+
+// Listener do Painel Web (Supabase Realtime)
+const { createClient } = require('@supabase/supabase-js');
+const supabasePanel = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+supabasePanel.channel('painel-supervisor')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async (payload) => {
+        const newMsg = payload.new;
+        if (newMsg && newMsg.role === 'supervisor') {
+            console.log(`[Painel] Enviando mensagem manual para ${newMsg.numero}`);
+            try {
+                await whatsapp.enviarTexto(newMsg.numero, newMsg.mensagem);
+            } catch (err) {
+                console.error('[Painel] Erro ao enviar mensagem:', err.message);
+            }
+        }
+    })
+    .subscribe();

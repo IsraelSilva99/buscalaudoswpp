@@ -73,16 +73,29 @@ export default function App() {
 
           if (chatIndex > -1) {
             const chat = newChats.splice(chatIndex, 1)[0];
-            chat.messages = [...chat.messages, formattedMessage];
-            chat.lastSeen = formattedMessage.timestamp;
-            if (activeChatId !== chat.id) {
-              chat.unreadCount += 1;
+            const exists = chat.messages.some(m => m.id === formattedMessage.id);
+            if (!exists) {
+              chat.messages = [...chat.messages, formattedMessage];
+              chat.lastSeen = formattedMessage.timestamp;
+              if (activeChatId !== chat.id) {
+                chat.unreadCount += 1;
+              }
             }
             newChats.unshift(chat);
           } else {
+            const formatPhoneNumber = (num: string) => {
+              const cleaned = num.replace(/\D/g, '');
+              if (cleaned.length === 13 && cleaned.startsWith('55')) {
+                return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`;
+              } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
+                return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`;
+              }
+              return num;
+            };
+
             newChats.unshift({
               id: newMsg.numero,
-              name: newMsg.numero,
+              name: formatPhoneNumber(newMsg.numero),
               avatar: newMsg.numero.substring(0, 2),
               avatarBg: "#00a884",
               statusText: "online",
@@ -126,10 +139,20 @@ export default function App() {
         type: 'text'
       };
 
+      const formatPhoneNumber = (num: string) => {
+        const cleaned = num.replace(/\D/g, '');
+        if (cleaned.length === 13 && cleaned.startsWith('55')) {
+          return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`;
+        } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
+          return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`;
+        }
+        return num;
+      };
+
       if (!chatsMap.has(msg.numero)) {
         chatsMap.set(msg.numero, {
           id: msg.numero,
-          name: msg.numero,
+          name: formatPhoneNumber(msg.numero),
           avatar: msg.numero.substring(0, 2),
           avatarBg: "#00a884",
           statusText: "online",
@@ -140,8 +163,11 @@ export default function App() {
         });
       } else {
         const chat = chatsMap.get(msg.numero)!;
-        chat.messages.push(formattedMessage);
-        chat.lastSeen = formattedMessage.timestamp;
+        const exists = chat.messages.some(m => m.id === formattedMessage.id);
+        if (!exists) {
+          chat.messages.push(formattedMessage);
+          chat.lastSeen = formattedMessage.timestamp;
+        }
       }
     });
 
@@ -164,9 +190,18 @@ export default function App() {
 
   const palette = currentPalette[currentMode];
 
-  const handleSendMessage = async () => {
-    // Modo leitura ativo - Sem envio para produção no momento.
-    console.log("Apenas leitura no painel supervisor.");
+  const handleSendMessage = async (text: string) => {
+    if (!activeChatId || !text.trim()) return;
+
+    try {
+      await supabase.from('chat_messages').insert([{
+        numero: activeChatId,
+        role: 'supervisor',
+        mensagem: text
+      }]);
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+    }
   };
 
   const handleSelectChat = (chatId: string) => {
@@ -199,7 +234,6 @@ export default function App() {
             onToggleTheme={handleToggleTheme}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            onOpenInfo={() => { }} // Removido modal
           />
         </div>
 
