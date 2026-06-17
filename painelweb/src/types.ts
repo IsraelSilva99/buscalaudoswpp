@@ -15,8 +15,8 @@ export interface Chat {
   name: string;
   avatar: string; // Dynamic avatar letters or symbol
   avatarBg: string; // Tailwind hex or class color
-  statusText: string;
-  lastSeen?: string;
+  statusText?: string;
+  profileName?: string;
   unreadCount: number;
   isGroup: boolean;
   messages: Message[];

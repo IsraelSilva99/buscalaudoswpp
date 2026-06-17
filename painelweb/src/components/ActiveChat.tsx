@@ -197,8 +197,12 @@ export default function ActiveChat({
               {chat.name}
             </h2>
             <p className="text-[10px] text-gray-400">
-              {isAITyping && (
+              {isAITyping ? (
                 <span className="text-emerald-500 font-medium animate-pulse">digitando...</span>
+              ) : chat.profileName ? (
+                `~ ${chat.profileName}`
+              ) : (
+                ""
               )}
             </p>
           </div>

@@ -104,6 +104,12 @@ export default function App() {
             const chat = { ...newChats.splice(chatIndex, 1)[0] };
             chat.messages = [...chat.messages];
 
+            // Atualiza o profileName se tiver chegado do banco agora
+            if (contactName) {
+              chat.profileName = contactName;
+              chat.avatar = contactName.charAt(0).toUpperCase();
+            }
+
             const optimisticIndex = chat.messages.findIndex(m => 
               m.status === 'sent' && 
               m.text === formattedMessage.text && 
@@ -140,11 +146,15 @@ export default function App() {
               return num;
             };
 
+            const colors = ["#00a884", "#25D366", "#34B7F1", "#FF7A00", "#E1306C", "#FCAF45", "#833AB4", "#405DE6"];
+            const colorIndex = newMsg.numero.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % colors.length;
+
             newChats.unshift({
               id: newMsg.numero,
               name: formatPhoneNumber(newMsg.numero),
-              avatar: newMsg.numero.substring(0, 2),
-              avatarBg: "#00a884",
+              profileName: contactName,
+              avatar: contactName ? contactName.charAt(0).toUpperCase() : newMsg.numero.substring(0, 2),
+              avatarBg: colors[colorIndex],
               statusText: "online",
               unreadCount: activeChatId === newMsg.numero ? 0 : 1,
               isGroup: false,
@@ -163,6 +173,14 @@ export default function App() {
   }, []); // Removemos activeChatId da dependência para evitar reset do banco de dados a cada clique
 
   const fetchChats = async () => {
+    // 1. Busca nomes de contato
+    const { data: contactsData } = await supabase.from('contacts').select('*');
+    const contactsMapData = new Map<string, string>();
+    if (contactsData) {
+      contactsData.forEach((c: any) => contactsMapData.set(c.numero, c.name));
+    }
+
+    // 2. Busca mensagens
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
@@ -209,11 +227,16 @@ export default function App() {
       };
 
       if (!chatsMap.has(msg.numero)) {
+        const contactName = contactsMapData.get(msg.numero);
+        const colors = ["#00a884", "#25D366", "#34B7F1", "#FF7A00", "#E1306C", "#FCAF45", "#833AB4", "#405DE6"];
+        const colorIndex = msg.numero.split('').reduce((a, b) => a + b.charCodeAt(0), 0) % colors.length;
+
         chatsMap.set(msg.numero, {
           id: msg.numero,
           name: formatPhoneNumber(msg.numero),
-          avatar: msg.numero.substring(0, 2),
-          avatarBg: "#00a884",
+          profileName: contactName,
+          avatar: contactName ? contactName.charAt(0).toUpperCase() : msg.numero.substring(0, 2),
+          avatarBg: colors[colorIndex],
           statusText: "online",
           unreadCount: 0,
           isGroup: false,

@@ -278,6 +278,15 @@ async function obterHistoricoChat(numero) {
     return data || [];
 }
 
+// --- Controle de Contatos (Nomes de Perfil) ---
+async function salvarContato(numero, name) {
+    const now = new Date().toISOString();
+    await supabase.from('contacts').upsert(
+        { numero, name, updated_at: now },
+        { onConflict: 'numero' }
+    );
+}
+
 module.exports = {
     verificarLgpd,
     aceitarLgpd,
@@ -297,5 +306,6 @@ module.exports = {
     removerExamePendente,
     removerExamesPendentesExpirados,
     salvarMensagemChat,
-    obterHistoricoChat
+    obterHistoricoChat,
+    salvarContato
 };

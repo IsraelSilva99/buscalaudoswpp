@@ -57,6 +57,14 @@ app.post('/webhook', async (req, res) => {
         processedMessages.set(msg.id, true);
 
         const numero = msg.from;
+        
+        // 1. Extrai e salva o nome de perfil do WhatsApp
+        const contact = entry?.changes?.[0]?.value?.contacts?.[0];
+        const profileName = contact?.profile?.name;
+        if (profileName && numero) {
+            await db.salvarContato(numero, profileName).catch(err => console.error("Erro ao salvar contato:", err.message));
+        }
+
         let texto = '';
 
         if (msg.type === 'text') {
