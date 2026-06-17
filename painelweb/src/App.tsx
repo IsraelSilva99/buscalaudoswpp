@@ -48,6 +48,11 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [chats, setChats] = useState<Chat[]>([]);
+  const activeChatRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    activeChatRef.current = activeChatId;
+  }, [activeChatId]);
 
   // Carrega e assina o banco de dados
   useEffect(() => {
@@ -107,7 +112,7 @@ export default function App() {
               if (!exists) {
                 chat.messages.push(formattedMessage);
                 chat.lastSeen = formattedMessage.timestamp;
-                if (activeChatId !== chat.id) {
+                if (activeChatRef.current !== chat.id) {
                   chat.unreadCount += 1;
                 }
               }
@@ -144,7 +149,7 @@ export default function App() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeChatId]);
+  }, []); // Removemos activeChatId da dependência para evitar reset do banco de dados a cada clique
 
   const fetchChats = async () => {
     const { data, error } = await supabase
