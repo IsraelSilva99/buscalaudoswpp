@@ -44,7 +44,10 @@ export default function Sidebar({
   // Filter logic
   const filteredChats = chats.filter(chat => {
     // 1. Text Search Filter
-    const matchesSearch = chat.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const searchCleanDigits = searchTerm.replace(/\D/g, '');
+    const matchesSearch = 
+      chat.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (searchCleanDigits !== '' && chat.id.includes(searchCleanDigits)) ||
       chat.messages.some(m => m.text.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (!matchesSearch) return false;
