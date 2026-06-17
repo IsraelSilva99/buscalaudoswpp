@@ -260,6 +260,24 @@ async function obterMetricasRelatorio() {
     }
 }
 
+// --- Histórico de Chat (Painel Web) ---
+async function salvarMensagemChat(numero, role, mensagem) {
+    try {
+        await supabase.from('chat_messages').insert([{ numero, role, mensagem }]);
+    } catch (err) {
+        console.error('Erro ao salvar mensagem no chat:', err.message);
+    }
+}
+
+async function obterHistoricoChat(numero) {
+    const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('numero', numero)
+        .order('created_at', { ascending: true });
+    return data || [];
+}
+
 module.exports = {
     verificarLgpd,
     aceitarLgpd,
@@ -277,5 +295,7 @@ module.exports = {
     salvarExamePendente,
     obterExamesPendentes,
     removerExamePendente,
-    removerExamesPendentesExpirados
+    removerExamesPendentesExpirados,
+    salvarMensagemChat,
+    obterHistoricoChat
 };

@@ -7,6 +7,9 @@ const { TEXTOS, obterSaudacao } = require('../utils/textos');
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function processarMensagem(numero, textoRecebido, messageId) {
+    // Salva no histórico para o Painel Web
+    await db.salvarMensagemChat(numero, 'user', textoRecebido);
+
     // Aciona o efeito digitando oficial da v21.0
     await whatsapp.enviarDigitando(messageId);
 

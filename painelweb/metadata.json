@@ -1,0 +1,6 @@
+{
+  "name": "WhatsApp Web Companion",
+  "description": "Painel clone do WhatsApp Web com assistente inteligente, paleta de cores e dicas de arquitetura para o seu projeto.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

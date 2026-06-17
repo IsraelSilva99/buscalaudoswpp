@@ -1,5 +1,6 @@
 const axios = require('axios');
 require('dotenv').config();
+const db = require('./db');
 
 const { META_TOKEN, PHONE_NUMBER_ID } = process.env;
 const API_VERSION = process.env.API_VERSION || 'v20.0';
@@ -20,6 +21,7 @@ async function enviarTexto(to, text) {
             type: 'text',
             text: { body: text }
         }, { headers });
+        await db.salvarMensagemChat(to, 'assistant', text);
     } catch (err) {
         console.error('Erro ao enviar texto:', err.response?.data || err.message);
     }
@@ -63,6 +65,7 @@ async function enviarBotoes(to, text, buttons) {
                 action: { buttons: formattedButtons }
             }
         }, { headers });
+        await db.salvarMensagemChat(to, 'assistant', `[Botões] ${text}`);
     } catch (err) {
         console.error('Erro ao enviar botões:', err.response?.data || err.message);
     }
@@ -123,6 +126,7 @@ async function enviarDocumento(to, pdfBase64, filename, caption) {
                 ...(caption ? { caption } : {})
             }
         }, { headers });
+        await db.salvarMensagemChat(to, 'assistant', `[PDF Enviado] ${filename}`);
     } catch (err) {
         console.error('Erro ao enviar laudo PDF:', err.response?.data || err.message);
     }
