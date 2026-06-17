@@ -217,12 +217,36 @@ export default function App() {
   const handleSendMessage = async (text: string, type: string = "text") => {
     if (!activeChatId || !text.trim()) return;
 
+    const msgId = crypto.randomUUID(); // Gera um ID único para a mensagem otimista
     let mensagemFinal = text;
     if (type === 'pdf') mensagemFinal = '[[PDF_FLAG]]' + text;
     if (type === 'system') mensagemFinal = '[[SYSTEM_FLAG]]' + text;
 
+    // --- Atualização Otimista da Interface (Melhora Fluidez) ---
+    setChats(prevChats => {
+      let newChats = [...prevChats];
+      const chatIndex = newChats.findIndex(c => c.id === activeChatId);
+      if (chatIndex > -1) {
+        const chat = newChats.splice(chatIndex, 1)[0];
+        const newMsg: Message = {
+          id: msgId,
+          sender: 'me',
+          text: text,
+          timestamp: format(new Date(), 'HH:mm'),
+          status: 'sent',
+          type: type as any,
+          rawRole: 'supervisor'
+        };
+        chat.messages = [...chat.messages, newMsg];
+        newChats.unshift(chat); // Sobe o chat pro topo
+      }
+      return newChats;
+    });
+    // -------------------------------------------------------------
+
     try {
       const { error } = await supabase.from('chat_messages').insert([{
+        id: msgId,
         numero: activeChatId,
         role: 'supervisor',
         mensagem: mensagemFinal,
