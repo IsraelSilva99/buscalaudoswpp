@@ -123,7 +123,7 @@ export default function ActiveChat({
     }`}>
       
       <div 
-        className={`absolute inset-0 pointer-events-none select-none z-0 ${currentMode === 'dark' ? 'opacity-[0.2]' : 'opacity-[0.08]'}`}
+        className={`absolute inset-0 pointer-events-none select-none z-0 ${currentMode === 'dark' ? 'opacity-[0.04]' : 'opacity-[0.06]'}`}
         style={{
           backgroundImage: `url("https://camo.githubusercontent.com/c42c83df2fd1e442ef1e0ed69cc20d21f65308fc2f0dca2a8035360738d49c8c/68747470733a2f2f7765622e77686174736170702e636f6d2f696d672f62672d636861742d74696c652d6461726b5f61346265353132653731393562366237333364393131306234303866303735642e706e67")`,
           backgroundSize: "400px"

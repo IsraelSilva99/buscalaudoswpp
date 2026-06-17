@@ -72,9 +72,9 @@ export default function Sidebar({
       }`}>
         {/* Profile Avatar / Logo representation */}
         <div className="flex items-center gap-2">
-          <div className="relative w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-white shadow-sm">
-            W
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#202c33] rounded-full"></span>
+          <div className="relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+            <img src="https://i.imgur.com/zN4LUCC.png" alt="Logo" className="w-full h-full object-cover" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#202c33] rounded-full z-10"></span>
           </div>
           <span className="font-semibold text-xs text-emerald-500 tracking-wider">EnviaLaudos HMASP</span>
         </div>
@@ -142,17 +142,6 @@ export default function Sidebar({
           {chats.some(c => c.unreadCount > 0) && (
             <span className="w-2 h-2 rounded-full bg-red-500 inline-block animate-pulse"></span>
           )}
-        </button>
-        <button
-          onClick={() => setFilter("groups")}
-          className={`px-3 py-1 rounded-full transition-all flex items-center gap-1 cursor-pointer ${
-            filter === "groups"
-              ? "bg-[#00a884] text-white"
-              : currentMode === "dark" ? "bg-[#202c33] text-gray-300 hover:bg-[#2a3942]" : "bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]"
-          }`}
-        >
-          <Users className="w-3 h-3" />
-          Grupos
         </button>
       </div>
 

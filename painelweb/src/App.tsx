@@ -64,7 +64,7 @@ export default function App() {
 
           const formattedMessage: Message = {
             id: newMsg.id,
-            sender: newMsg.role === 'assistant' ? 'me' : 'them',
+            sender: (newMsg.role === 'assistant' || newMsg.role === 'supervisor') ? 'me' : 'them',
             text: newMsg.mensagem,
             timestamp: format(new Date(newMsg.created_at), 'HH:mm'),
             status: 'read',
@@ -129,10 +129,10 @@ export default function App() {
     const chatsMap = new Map<string, Chat>();
 
     data.forEach(msg => {
-      const isBot = msg.role === 'assistant';
+      const isBotOrSupervisor = msg.role === 'assistant' || msg.role === 'supervisor';
       const formattedMessage: Message = {
         id: msg.id,
-        sender: isBot ? 'me' : 'them',
+        sender: isBotOrSupervisor ? 'me' : 'them',
         text: msg.mensagem,
         timestamp: format(new Date(msg.created_at), 'HH:mm'),
         status: 'read',
