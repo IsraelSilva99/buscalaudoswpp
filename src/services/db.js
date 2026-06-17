@@ -281,10 +281,13 @@ async function obterHistoricoChat(numero) {
 // --- Controle de Contatos (Nomes de Perfil) ---
 async function salvarContato(numero, name) {
     const now = new Date().toISOString();
-    await supabase.from('contacts').upsert(
+    const { error } = await supabase.from('contacts').upsert(
         { numero, name, updated_at: now },
         { onConflict: 'numero' }
     );
+    if (error) {
+        console.error("Erro no upsert contacts:", error.message);
+    }
 }
 
 module.exports = {
