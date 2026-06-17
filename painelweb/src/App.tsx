@@ -54,6 +54,17 @@ export default function App() {
     activeChatRef.current = activeChatId;
   }, [activeChatId]);
 
+  // Fecha o chat ativo ao pressionar a tecla "ESC"
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveChatId(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Carrega e assina o banco de dados
   useEffect(() => {
     fetchChats();
