@@ -71,8 +71,16 @@ export default function App() {
 
     const channel = supabase
       .channel('public:chat_messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async payload => {
         const newMsg = payload.new;
+        
+        let contactName: string | undefined = undefined;
+        try {
+          const { data } = await supabase.from('contacts').select('name').eq('numero', newMsg.numero).maybeSingle();
+          if (data) contactName = data.name;
+        } catch (err) {
+          console.error(err);
+        }
 
         setChats(prevChats => {
           const chatIndex = prevChats.findIndex(c => c.id === newMsg.numero);

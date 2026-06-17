@@ -43,7 +43,10 @@ async function enviarDigitando(messageId) {
             }
         }, { headers });
     } catch (err) {
-        console.error('Erro ao enviar typing_indicator:', err.response?.data || err.message);
+        // Silencia erros de message_id inexistente (transientes do Meta)
+        if (err.response?.data?.error?.code !== 100) {
+            console.error('Erro ao enviar typing_indicator:', err.response?.data || err.message);
+        }
     }
 }
 
