@@ -153,14 +153,23 @@ async function etapaLgpd(numero, texto, sessao) {
 }
 
 async function etapaAguardandoDoc(numero, texto, sessao) {
-    // Regra simples: apenas números
-    if (!/^\d+$/.test(texto)) {
+    const textoMinusculo = texto.toLowerCase();
+    const perdeuDoc = ['não tenho', 'nao tenho', 'esqueci', 'não possuo', 'nao possuo', 'não sei', 'nao sei', 'não recebi', 'nao recebi', 'perdi'].some(p => textoMinusculo.includes(p));
+    
+    if (perdeuDoc) {
+        await whatsapp.enviarTexto(numero, "Compreendo! O Documento é obrigatório para manter seus dados seguros.\n\nCaso não se recorde, por favor, entre em contato com a nossa equipe no telefone *(11) 3278-4010*.");
+        return;
+    }
+
+    const docLimpo = texto.replace(/\D/g, '');
+
+    if (!docLimpo) {
         await whatsapp.enviarTexto(numero, TEXTOS.PEDIR_DOC);
         return;
     }
 
     // Consulta API BuscaLaudos
-    const exames = await laudosApi.consultarExames(texto);
+    const exames = await laudosApi.consultarExames(docLimpo);
     if (!exames || exames.length === 0) {
         const docAttempts = (sessao.docAttempts || 0) + 1;
         if (docAttempts >= 3) {
@@ -179,9 +188,9 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
         return;
     }
 
-    // Salva o documento na sessão e avança
+    // Salva o documento limpo na sessão e avança
     await db.atualizarSessao(numero, {
-        documento: texto,
+        documento: docLimpo,
         etapa: 'AGUARDANDO_CODIGO',
         docAttempts: 0
     });
@@ -189,12 +198,33 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
 }
 
 async function etapaAguardandoCodigo(numero, texto, sessao) {
+    const textoMinusculo = texto.toLowerCase();
+    const perdeuDoc = ['não tenho', 'nao tenho', 'esqueci', 'não possuo', 'nao possuo', 'não sei', 'nao sei', 'não recebi', 'nao recebi', 'perdi'].some(p => textoMinusculo.includes(p));
+    
+    if (perdeuDoc) {
+        await whatsapp.enviarTexto(numero, "Compreendo! O Nº de Atendimento é obrigatório para acessar o resultado.\n\nVocê pode encontrá-lo impresso no seu protocolo de retirada. Caso tenha perdido o protocolo, por favor, entre em contato com a equipe no telefone *(11) 3278-4010*.");
+        return;
+    }
+
+    const codigoLimpo = texto.replace(/\D/g, '');
+    
+    if (!codigoLimpo) {
+        await whatsapp.enviarTexto(numero, TEXTOS.PEDIR_CODIGO);
+        return;
+    }
+
+    // Aplica o padding de zeros à esquerda se o paciente digitar menos de 10 números
+    let codigoFormatado = codigoLimpo;
+    if (codigoFormatado.length > 0 && codigoFormatado.length < 10) {
+        codigoFormatado = codigoFormatado.padStart(10, '0');
+    }
+
     await whatsapp.enviarTexto(numero, TEXTOS.BUSCANDO);
-    const laudoValido = await laudosApi.obterPdfLaudo(sessao.documento, texto);
+    const laudoValido = await laudosApi.obterPdfLaudo(sessao.documento, codigoFormatado);
 
     if (laudoValido && laudoValido.error) {
         if (laudoValido.error === 'EM_ANALISE') {
-            await db.salvarExamePendente(numero, sessao.documento, texto);
+            await db.salvarExamePendente(numero, sessao.documento, codigoFormatado);
             await whatsapp.enviarTexto(numero, 'Seu exame ainda está em análise. Se o laudo sair nas próximas 24 horas, enviarei um aviso automático por aqui. Após esse prazo, por favor, envie uma nova mensagem para consultar. Obrigado!');
             await db.deletarSessao(numero);
             return;
@@ -234,7 +264,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
     }
 
     // Envia o PDF e vai para avaliação
-    await whatsapp.enviarDocumento(numero, laudoValido.base64, `Laudo_${texto}.pdf`);
+    await whatsapp.enviarDocumento(numero, laudoValido.base64, `Laudo_${codigoFormatado}.pdf`);
     await db.registrarEntregaPdf(numero); // Registra a entrega para as métricas de conversão
     await sleep(2000); // Espera o tempo do arquivo subir um pouco
     await whatsapp.enviarTexto(numero, TEXTOS.PDF_ENVIADO);
