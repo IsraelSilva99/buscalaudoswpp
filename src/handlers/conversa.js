@@ -158,6 +158,7 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
     
     if (perdeuDoc) {
         await whatsapp.enviarTexto(numero, "Compreendo! O Documento é obrigatório para manter seus dados seguros.\n\nCaso não se recorde, por favor, entre em contato com a nossa equipe no telefone *(11) 3278-4010*.");
+        await db.deletarSessao(numero);
         return;
     }
 
@@ -203,6 +204,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
     
     if (perdeuDoc) {
         await whatsapp.enviarTexto(numero, "Compreendo! O Nº de Atendimento é obrigatório para acessar o resultado.\n\nVocê pode encontrá-lo impresso no seu protocolo de retirada. Caso tenha perdido o protocolo, por favor, entre em contato com a equipe no telefone *(11) 3278-4010*.");
+        await db.deletarSessao(numero);
         return;
     }
 
