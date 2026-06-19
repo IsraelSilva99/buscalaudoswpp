@@ -152,6 +152,7 @@ horas.forEach(hora => {
                 if (laudo && !laudo.error) {
                     // PDF ficou pronto!
                     await whatsapp.enviarBotaoPDF(p.numero, p.documento, p.codigoAtendimento);
+                    await db.deletarSessao(p.numero);
                     await db.removerExamePendente(p.id);
                 }
             }
