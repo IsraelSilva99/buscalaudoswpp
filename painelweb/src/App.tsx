@@ -78,6 +78,21 @@ export default function App() {
 
     const channel = supabase
       .channel('public:chat_messages')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, payload => {
+        const updatedMsg = payload.new;
+        setChats(prevChats => {
+          const newChats = [...prevChats];
+          const chatIndex = newChats.findIndex(c => c.id === updatedMsg.numero);
+          if (chatIndex > -1) {
+            const chat = { ...newChats[chatIndex] };
+            chat.messages = chat.messages.map(m => 
+              m.id === updatedMsg.id ? { ...m, status: updatedMsg.status || m.status } : m
+            );
+            newChats[chatIndex] = chat;
+          }
+          return newChats;
+        });
+      })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async payload => {
         const newMsg = payload.new;
         
@@ -109,7 +124,7 @@ export default function App() {
             sender: (newMsg.role === 'assistant' || newMsg.role === 'supervisor') ? 'me' : 'them',
             text: text,
             timestamp: formatTimestamp(newMsg.created_at),
-            status: 'read',
+            status: newMsg.status || 'sent',
             type: msgType,
             rawRole: newMsg.role
           };
@@ -226,7 +241,7 @@ export default function App() {
         sender: isBotOrSupervisor ? 'me' : 'them',
         text: text,
         timestamp: formatTimestamp(msg.created_at),
-        status: 'read',
+        status: msg.status || 'sent',
         type: msgType,
         rawRole: msg.role
       };

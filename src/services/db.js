@@ -263,9 +263,32 @@ async function obterMetricasRelatorio() {
 // --- Histórico de Chat (Painel Web) ---
 async function salvarMensagemChat(numero, role, mensagem) {
     try {
-        await supabase.from('chat_messages').insert([{ numero, role, mensagem }]);
+        // Assume que o banco de dados tem a coluna 'status' que é default 'sent'
+        await supabase.from('chat_messages').insert([{ numero, role, mensagem, status: 'sent' }]);
     } catch (err) {
         console.error('Erro ao salvar mensagem no chat:', err.message);
+    }
+}
+
+async function atualizarStatusUltimaMensagem(numero, status) {
+    try {
+        // Encontra a última mensagem enviada pelo assistente e atualiza o status (delivered, read)
+        const { data } = await supabase
+            .from('chat_messages')
+            .select('id')
+            .eq('numero', numero)
+            .eq('role', 'assistant')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (data && data.length > 0) {
+            await supabase
+                .from('chat_messages')
+                .update({ status })
+                .eq('id', data[0].id);
+        }
+    } catch (err) {
+        console.error('Erro ao atualizar status da mensagem:', err.message);
     }
 }
 
@@ -309,6 +332,7 @@ module.exports = {
     removerExamePendente,
     removerExamesPendentesExpirados,
     salvarMensagemChat,
+    atualizarStatusUltimaMensagem,
     obterHistoricoChat,
     salvarContato
 };

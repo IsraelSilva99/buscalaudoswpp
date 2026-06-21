@@ -34,9 +34,16 @@ app.post('/webhook', async (req, res) => {
         const entry = req.body?.entry?.[0];
         const change = entry?.changes?.[0];
         const value = change?.value;
+        const status = value?.statuses?.[0];
+        if (status && status.recipient_id) {
+            const db = require('./services/db');
+            await db.atualizarStatusUltimaMensagem(status.recipient_id, status.status);
+            return;
+        }
+
         const msg = value?.messages?.[0];
 
-        // Ignora status de mensagens ou mensagens de sistema
+        // Ignora mensagens de sistema (ex: sem from)
         if (!msg || !msg.from) return;
 
         // Ignora mensagens muito antigas (ex: a Meta reenvia um backlog quando o ngrok cai e volta)

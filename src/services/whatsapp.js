@@ -213,5 +213,21 @@ async function enviarBotaoPDF(to, documento, codigoAtendimento) {
         console.error('Erro ao enviar botão de PDF:', err.response?.data || err.message);
     }
 }
+async function reagirMensagem(to, messageId, emoji) {
+    try {
+        await axios.post(META_URL, {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to,
+            type: 'reaction',
+            reaction: {
+                message_id: messageId,
+                emoji: emoji
+            }
+        }, { headers });
+    } catch (err) {
+        console.error('Erro ao reagir à mensagem:', err.response?.data || err.message);
+    }
+}
 
-module.exports = { enviarTexto, enviarBotoes, enviarLista, enviarDocumento, enviarDigitando, enviarImagemUrl, enviarBotaoLink, enviarBotaoPDF };
+module.exports = { enviarTexto, enviarBotoes, enviarLista, enviarDocumento, enviarDigitando, enviarImagemUrl, enviarBotaoLink, enviarBotaoPDF, reagirMensagem };

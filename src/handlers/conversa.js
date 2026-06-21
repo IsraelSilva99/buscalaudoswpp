@@ -108,7 +108,7 @@ async function processarMensagem(numero, textoRecebido, messageId) {
         case 'AGUARDANDO_CODIGO':
             return etapaAguardandoCodigo(numero, texto, sessao);
         case 'AGUARDANDO_AVALIACAO':
-            return etapaAvaliacao(numero, texto, sessao);
+            return etapaAvaliacao(numero, texto, sessao, messageId);
         default:
             await db.deletarSessao(numero);
             break;
@@ -287,7 +287,7 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
     await whatsapp.enviarLista(numero, TEXTOS.PESQUISA_SATISFACAO, "Dar Nota", secoesLista);
 }
 
-async function etapaAvaliacao(numero, texto, sessao) {
+async function etapaAvaliacao(numero, texto, sessao, messageId) {
     // O texto recebido pode vir como "nota_5", extraímos o número
     let notaString = texto;
     if (texto.startsWith('nota_')) {
@@ -297,6 +297,10 @@ async function etapaAvaliacao(numero, texto, sessao) {
     if (isNaN(nota) || nota < 1 || nota > 5) {
         await whatsapp.enviarTexto(numero, 'Por favor, selecione uma das opções da lista de 1 a 5.');
         return;
+    }
+
+    if (texto === 'nota_5' && messageId) {
+        await whatsapp.reagirMensagem(numero, messageId, '❤️');
     }
 
     await db.registrarFeedback(numero, nota);
