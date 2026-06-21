@@ -82,13 +82,15 @@ export default function App() {
         const updatedMsg = payload.new;
         setChats(prevChats => {
           const newChats = [...prevChats];
-          const chatIndex = newChats.findIndex(c => c.id === updatedMsg.numero);
-          if (chatIndex > -1) {
-            const chat = { ...newChats[chatIndex] };
-            chat.messages = chat.messages.map(m => 
-              m.id === updatedMsg.id ? { ...m, status: updatedMsg.status || m.status } : m
-            );
-            newChats[chatIndex] = chat;
+          for (let i = 0; i < newChats.length; i++) {
+            const msgIndex = newChats[i].messages.findIndex(m => m.id === updatedMsg.id);
+            if (msgIndex > -1) {
+              const chat = { ...newChats[i] };
+              chat.messages = [...chat.messages];
+              chat.messages[msgIndex] = { ...chat.messages[msgIndex], status: updatedMsg.status || chat.messages[msgIndex].status };
+              newChats[i] = chat;
+              break;
+            }
           }
           return newChats;
         });

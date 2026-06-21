@@ -68,6 +68,9 @@ async function processarMensagem(numero, textoRecebido, messageId) {
     if (texto.startsWith('nota_')) {
         let nota = parseInt(texto.replace('nota_', ''));
         if (!isNaN(nota) && nota >= 1 && nota <= 5) {
+            if (nota === 5 && messageId) {
+                await whatsapp.reagirMensagem(numero, messageId, '❤️');
+            }
             await db.registrarFeedback(numero, nota);
             await whatsapp.enviarTexto(numero, TEXTOS.FIM_ATENDIMENTO);
             if (sessao) await db.deletarSessao(numero);
@@ -299,7 +302,7 @@ async function etapaAvaliacao(numero, texto, sessao, messageId) {
         return;
     }
 
-    if (texto === 'nota_5' && messageId) {
+    if (nota === 5 && messageId) {
         await whatsapp.reagirMensagem(numero, messageId, '❤️');
     }
 
