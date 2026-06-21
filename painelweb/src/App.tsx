@@ -99,14 +99,6 @@ export default function App() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, async payload => {
         const newMsg = payload.new;
         
-        let contactName: string | undefined = undefined;
-        try {
-          const { data } = await supabase.from('contacts').select('name').eq('numero', newMsg.numero).maybeSingle();
-          if (data) contactName = data.name;
-        } catch (err) {
-          console.error(err);
-        }
-
         setChats(prevChats => {
           const chatIndex = prevChats.findIndex(c => c.id === newMsg.numero);
           let newChats = [...prevChats];
@@ -133,15 +125,9 @@ export default function App() {
           };
 
           if (chatIndex > -1) {
-            // Imutabilidade profunda para forçar re-render do React (garante os ticks azuis na tela)
+            // Chat já existe, atualizamos instantaneamente sem bloquear por await
             const chat = { ...newChats.splice(chatIndex, 1)[0] };
             chat.messages = [...chat.messages];
-
-            // Atualiza o profileName se tiver chegado do banco agora
-            if (contactName) {
-              chat.profileName = contactName;
-              chat.avatar = contactName.charAt(0).toUpperCase();
-            }
 
             const optimisticIndex = chat.messages.findIndex(m => 
               m.status === 'sent' && 
@@ -150,12 +136,9 @@ export default function App() {
             );
             
             if (optimisticIndex > -1) {
-              // Substitui a mensagem otimista pela real do servidor
               chat.messages[optimisticIndex] = formattedMessage;
             } else {
-              // Checagem pelo ID para evitar duplicidade causada por React StrictMode e UUIDs perdidos
               const exists = chat.messages.some(m => m.id === formattedMessage.id);
-              
               if (!exists) {
                 chat.messages.push(formattedMessage);
                 chat.lastSeen = formattedMessage.timestamp;
@@ -165,34 +148,48 @@ export default function App() {
               }
             }
             newChats.unshift(chat);
+            return newChats;
           } else {
-            const formatPhoneNumber = (num: string) => {
-              const cleaned = num.replace(/\D/g, '');
-              if (cleaned.length === 13 && cleaned.startsWith('55')) {
-                return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`;
-              } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
-                return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`;
-              }
-              return num;
-            };
+            // Chat novo, precisamos buscar o nome do contato assincronamente (fora do loop síncrono principal)
+            // Aqui despachamos uma rotina independente
+            supabase.from('contacts').select('name').eq('numero', newMsg.numero).maybeSingle().then(({ data }) => {
+              const contactName = data ? data.name : undefined;
+              
+              setChats(currentChats => {
+                // Checa novamente para garantir
+                if (currentChats.some(c => c.id === newMsg.numero)) return currentChats;
+                
+                let updatedChats = [...currentChats];
+                const formatPhoneNumber = (num: string) => {
+                  const cleaned = num.replace(/\D/g, '');
+                  if (cleaned.length === 13 && cleaned.startsWith('55')) {
+                    return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 9)}-${cleaned.substring(9)}`;
+                  } else if (cleaned.length === 12 && cleaned.startsWith('55')) {
+                    return `+${cleaned.substring(0, 2)} ${cleaned.substring(2, 4)} ${cleaned.substring(4, 8)}-${cleaned.substring(8)}`;
+                  }
+                  return num;
+                };
 
-            const colors = ["#00a884", "#25D366", "#34B7F1", "#FF7A00", "#E1306C", "#FCAF45", "#833AB4", "#405DE6"];
-            const colorIndex = newMsg.numero.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % colors.length;
+                const colors = ["#00a884", "#25D366", "#34B7F1", "#FF7A00", "#E1306C", "#FCAF45", "#833AB4", "#405DE6"];
+                const colorIndex = newMsg.numero.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0) % colors.length;
 
-            newChats.unshift({
-              id: newMsg.numero,
-              name: formatPhoneNumber(newMsg.numero),
-              profileName: contactName,
-              avatar: contactName ? contactName.charAt(0).toUpperCase() : newMsg.numero.substring(0, 2),
-              avatarBg: colors[colorIndex],
-              statusText: "online",
-              unreadCount: activeChatId === newMsg.numero ? 0 : 1,
-              isGroup: false,
-              lastSeen: formattedMessage.timestamp,
-              messages: [formattedMessage]
+                updatedChats.unshift({
+                  id: newMsg.numero,
+                  name: formatPhoneNumber(newMsg.numero),
+                  profileName: contactName,
+                  avatar: contactName ? contactName.charAt(0).toUpperCase() : newMsg.numero.substring(0, 2),
+                  avatarBg: colors[colorIndex],
+                  statusText: "online",
+                  unreadCount: activeChatId === newMsg.numero ? 0 : 1,
+                  isGroup: false,
+                  lastSeen: formattedMessage.timestamp,
+                  messages: [formattedMessage]
+                });
+                return updatedChats;
+              });
             });
+            return newChats; // Retorna sem alterações até a query terminar
           }
-          return newChats;
         });
       })
       .subscribe();
