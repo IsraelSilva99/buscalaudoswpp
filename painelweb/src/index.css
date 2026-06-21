@@ -8,6 +8,13 @@
 
 html {
   font-size: 120%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(174, 186, 193, 0.3) transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(174, 186, 193, 0.3) transparent;
 }
 
 body {

@@ -4,7 +4,14 @@ import Sidebar from "./components/Sidebar";
 import ActiveChat from "./components/ActiveChat";
 import EmptyState from "./components/EmptyState";
 import { supabase } from "./supabase";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
+
+export function formatTimestamp(dateInput: string | Date) {
+  const d = new Date(dateInput);
+  if (isToday(d)) return format(d, 'HH:mm');
+  if (isYesterday(d)) return "Ontem";
+  return format(d, 'dd/MM/yyyy');
+}
 
 const currentPalette: Record<"light" | "dark", PaletteConfig> = {
   light: {
@@ -101,7 +108,7 @@ export default function App() {
             id: newMsg.id,
             sender: (newMsg.role === 'assistant' || newMsg.role === 'supervisor') ? 'me' : 'them',
             text: text,
-            timestamp: format(new Date(newMsg.created_at), 'HH:mm'),
+            timestamp: formatTimestamp(newMsg.created_at),
             status: 'read',
             type: msgType,
             rawRole: newMsg.role
@@ -218,7 +225,7 @@ export default function App() {
         id: msg.id,
         sender: isBotOrSupervisor ? 'me' : 'them',
         text: text,
-        timestamp: format(new Date(msg.created_at), 'HH:mm'),
+        timestamp: formatTimestamp(msg.created_at),
         status: 'read',
         type: msgType,
         rawRole: msg.role
@@ -300,7 +307,7 @@ export default function App() {
           id: msgId,
           sender: 'me',
           text: text,
-          timestamp: format(new Date(), 'HH:mm'),
+          timestamp: formatTimestamp(new Date()),
           status: 'sent',
           type: type as any,
           rawRole: 'supervisor'
