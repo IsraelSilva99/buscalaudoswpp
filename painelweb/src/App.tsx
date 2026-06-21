@@ -133,7 +133,7 @@ export default function App() {
             if (!exists) {
               chat.messages.push(formattedMessage);
               chat.lastSeen = formattedMessage.timestamp;
-              if (activeChatRef.current !== chat.id) {
+              if (activeChatRef.current !== chat.id && formattedMessage.sender === 'them') {
                 chat.unreadCount += 1;
               }
             }
@@ -170,7 +170,7 @@ export default function App() {
                   avatar: contactName ? contactName.charAt(0).toUpperCase() : newMsg.numero.substring(0, 2),
                   avatarBg: colors[colorIndex],
                   statusText: "online",
-                  unreadCount: activeChatId === newMsg.numero ? 0 : 1,
+                  unreadCount: (activeChatId !== newMsg.numero && formattedMessage.sender === 'them') ? 1 : 0,
                   isGroup: false,
                   lastSeen: formattedMessage.timestamp,
                   messages: [formattedMessage]
