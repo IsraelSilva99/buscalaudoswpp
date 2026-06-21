@@ -76,8 +76,9 @@ export default function App() {
   useEffect(() => {
     fetchChats();
 
+    const channelName = `chat_messages_${crypto.randomUUID()}`;
     const channel = supabase
-      .channel('public:chat_messages')
+      .channel(channelName)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, payload => {
         const updatedMsg = payload.new;
         setChats(prevChats => {
