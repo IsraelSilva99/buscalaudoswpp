@@ -129,22 +129,12 @@ export default function App() {
             const chat = { ...newChats.splice(chatIndex, 1)[0] };
             chat.messages = [...chat.messages];
 
-            const optimisticIndex = chat.messages.findIndex(m => 
-              m.status === 'sent' && 
-              m.text === formattedMessage.text && 
-              m.sender === formattedMessage.sender
-            );
-            
-            if (optimisticIndex > -1) {
-              chat.messages[optimisticIndex] = formattedMessage;
-            } else {
-              const exists = chat.messages.some(m => m.id === formattedMessage.id);
-              if (!exists) {
-                chat.messages.push(formattedMessage);
-                chat.lastSeen = formattedMessage.timestamp;
-                if (activeChatRef.current !== chat.id) {
-                  chat.unreadCount += 1;
-                }
+            const exists = chat.messages.some(m => m.id === formattedMessage.id);
+            if (!exists) {
+              chat.messages.push(formattedMessage);
+              chat.lastSeen = formattedMessage.timestamp;
+              if (activeChatRef.current !== chat.id) {
+                chat.unreadCount += 1;
               }
             }
             newChats.unshift(chat);
