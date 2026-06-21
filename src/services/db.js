@@ -272,12 +272,12 @@ async function salvarMensagemChat(numero, role, mensagem) {
 
 async function atualizarStatusUltimaMensagem(numero, status) {
     try {
-        // Encontra a última mensagem enviada pelo assistente e atualiza o status (delivered, read)
+        // Encontra a última mensagem enviada pelo assistente ou pelo humano e atualiza o status (delivered, read)
         const { data } = await supabase
             .from('chat_messages')
             .select('id')
             .eq('numero', numero)
-            .eq('role', 'assistant')
+            .in('role', ['assistant', 'supervisor'])
             .order('created_at', { ascending: false })
             .limit(1);
 

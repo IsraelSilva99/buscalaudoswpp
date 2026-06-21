@@ -152,11 +152,8 @@ export default function App() {
               // Substitui a mensagem otimista pela real do servidor
               chat.messages[optimisticIndex] = formattedMessage;
             } else {
-              // Checagem agressiva para evitar duplicidade causada por React StrictMode e UUIDs perdidos
-              const exists = chat.messages.some(m => 
-                m.id === formattedMessage.id || 
-                (m.text === formattedMessage.text && m.sender === formattedMessage.sender && m.timestamp === formattedMessage.timestamp)
-              );
+              // Checagem pelo ID para evitar duplicidade causada por React StrictMode
+              const exists = chat.messages.some(m => m.id === formattedMessage.id);
               
               if (!exists) {
                 chat.messages.push(formattedMessage);

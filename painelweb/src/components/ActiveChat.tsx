@@ -363,6 +363,8 @@ export default function ActiveChat({
                     <span>
                       {msg.status === "read" ? (
                         <CheckCheck className="w-3.5 h-3.5 text-sky-300 stroke-[3px]" />
+                      ) : msg.status === "delivered" ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-200 stroke-[3px]" />
                       ) : (
                         <Check className="w-3.5 h-3.5 text-emerald-200 stroke-[3px]" />
                       )}
