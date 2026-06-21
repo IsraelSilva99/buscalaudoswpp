@@ -76,8 +76,9 @@ export default function App() {
   useEffect(() => {
     fetchChats();
 
+    const channelName = `chat_messages_${crypto.randomUUID()}`;
     const channel = supabase
-      .channel('public:chat_messages')
+      .channel(channelName)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, payload => {
         const updatedMsg = payload.new;
         setChats(prevChats => {
@@ -152,11 +153,8 @@ export default function App() {
               // Substitui a mensagem otimista pela real do servidor
               chat.messages[optimisticIndex] = formattedMessage;
             } else {
-              // Checagem agressiva para evitar duplicidade causada por React StrictMode e UUIDs perdidos
-              const exists = chat.messages.some(m => 
-                m.id === formattedMessage.id || 
-                (m.text === formattedMessage.text && m.sender === formattedMessage.sender && m.timestamp === formattedMessage.timestamp)
-              );
+              // Checagem pelo ID para evitar duplicidade causada por React StrictMode e UUIDs perdidos
+              const exists = chat.messages.some(m => m.id === formattedMessage.id);
               
               if (!exists) {
                 chat.messages.push(formattedMessage);
