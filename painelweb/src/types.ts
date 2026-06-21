@@ -19,6 +19,7 @@ export interface Chat {
   profileName?: string;
   unreadCount: number;
   isGroup: boolean;
+  lastSeen?: string;
   messages: Message[];
 }
 
