@@ -212,11 +212,14 @@ export default function App() {
       contactsData.forEach((c: any) => contactsMapData.set(c.numero, c.name));
     }
 
-    // 2. Busca mensagens
-    const { data, error } = await supabase
+    // 2. Busca mensagens (pegando as últimas 1000 e invertendo para ficar cronológico)
+    const { data: rawData, error } = await supabase
       .from('chat_messages')
       .select('*')
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(2000);
+
+    const data = rawData ? rawData.reverse() : [];
 
     if (error) {
       console.error('Erro ao buscar histórico:', error);
