@@ -199,9 +199,11 @@ export default function Sidebar({
                     {lastMsg && lastMsg.sender === "me" && (
                       <span>
                         {lastMsg.status === "read" ? (
-                          <CheckCheck className="w-3.5 h-3.5 text-sky-400 stroke-[3px]" />
+                          <CheckCheck className="w-4 h-4 text-sky-500 stroke-[3px]" />
+                        ) : lastMsg.status === "delivered" ? (
+                          <CheckCheck className="w-4 h-4 text-gray-400 stroke-[3px]" />
                         ) : (
-                          <Check className="w-3.5 h-3.5 text-gray-400 stroke-[3px]" />
+                          <Check className="w-4 h-4 text-gray-400 stroke-[3px]" />
                         )}
                       </span>
                     )}
