@@ -141,7 +141,7 @@ async function enviarDocumento(to, pdfBase64, filename, caption, salvarNoBd = tr
 }
 
 // Envia uma imagem a partir de um link público (URL)
-async function enviarImagemUrl(to, url, caption) {
+async function enviarImagemUrl(to, url, caption, salvarNoBd = true) {
     if (!url) return;
     try {
         await axios.post(META_URL, {
@@ -154,6 +154,9 @@ async function enviarImagemUrl(to, url, caption) {
                 ...(caption ? { caption } : {})
             }
         }, { headers });
+        if (salvarNoBd) {
+            await db.salvarMensagemChat(to, 'assistant', caption ? `[Imagem] ${caption}` : `[Imagem Enviada]`);
+        }
     } catch (err) {
         console.error('Erro ao enviar imagem:', err.response?.data || err.message);
     }
