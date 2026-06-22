@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -94,8 +94,10 @@ export default function DashboardView() {
   useEffect(() => {
     if (dateRange === 'custom' && (!customStart || !customEnd)) return;
 
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
+    const fetchDashboardData = async (isBackground = false) => {
+      if (!isBackground) {
+        setIsLoading(true);
+      }
       setError(null);
       try {
         const now = new Date();
@@ -112,7 +114,7 @@ export default function DashboardView() {
           startDate = startOfDay(new Date(customStart + 'T00:00:00'));
           endDate = endOfDay(new Date(customEnd + 'T23:59:59'));
         }
-        
+
         const startIso = startDate.toISOString();
         const endIso = endDate.toISOString();
         const startMs = startDate.getTime();
@@ -138,7 +140,7 @@ export default function DashboardView() {
         const totalMsgs = (messages || []).length;
         const totalPdfs = (deliveries || []).length;
         const activePendings = (pendings || []).length;
-        
+
         // Tempo Médio de Entrega
         let totalTime = 0;
         let validTimeCount = 0;
@@ -166,7 +168,7 @@ export default function DashboardView() {
           if (s.docAttempts > 0) totalErros += s.docAttempts;
           if (s.codeAttempts > 0) totalErros += s.codeAttempts;
         });
-        
+
         let sumRating = 0;
         const ratingCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         (feedbacks || []).forEach(f => {
@@ -188,65 +190,65 @@ export default function DashboardView() {
 
         // Calculate Charts Data
         const dailyMap = new Map<string, ChartEntry>();
-      
-      if (dateRange === 'today') {
-        for (let i = 0; i < 24; i++) {
-          const hourStr = `${i.toString().padStart(2, '0')}:00`;
-          dailyMap.set(hourStr, { date: hourStr, messages: 0, bot: 0, user: 0 });
-        }
-        (messages || []).forEach(m => {
-          const d = new Date(m.created_at);
-          const hourStr = `${d.getHours().toString().padStart(2, '0')}:00`;
-          if (dailyMap.has(hourStr)) {
-            const entry = dailyMap.get(hourStr)!;
+
+        if (dateRange === 'today') {
+          for (let i = 0; i < 24; i++) {
+            const hourStr = `${i.toString().padStart(2, '0')}:00`;
+            dailyMap.set(hourStr, { date: hourStr, messages: 0, bot: 0, user: 0 });
+          }
+          (messages || []).forEach(m => {
+            const d = new Date(m.created_at);
+            const hourStr = `${d.getHours().toString().padStart(2, '0')}:00`;
+            if (dailyMap.has(hourStr)) {
+              const entry = dailyMap.get(hourStr)!;
+              entry.messages += 1;
+              if (m.role === 'user') entry.user += 1;
+              else entry.bot += 1;
+            }
+          });
+        } else {
+          // Pre-fill days map only if not 'all'
+          if (dateRange !== 'all') {
+            let currentDay = new Date(startDate);
+            while (currentDay <= endDate) {
+              const dateStr = format(currentDay, 'dd/MM', { locale: ptBR });
+              dailyMap.set(dateStr, { date: dateStr, messages: 0, bot: 0, user: 0 });
+              currentDay = new Date(currentDay.getTime() + 24 * 60 * 60 * 1000);
+            }
+          }
+
+          (messages || []).forEach(m => {
+            const dateStr = format(new Date(m.created_at), 'dd/MM', { locale: ptBR });
+            if (!dailyMap.has(dateStr)) {
+              dailyMap.set(dateStr, { date: dateStr, messages: 0, bot: 0, user: 0 });
+            }
+            const entry = dailyMap.get(dateStr)!;
             entry.messages += 1;
             if (m.role === 'user') entry.user += 1;
             else entry.bot += 1;
-          }
-        });
-      } else {
-        // Pre-fill days map only if not 'all'
-        if (dateRange !== 'all') {
-          let currentDay = new Date(startDate);
-          while (currentDay <= endDate) {
-            const dateStr = format(currentDay, 'dd/MM', { locale: ptBR });
-            dailyMap.set(dateStr, { date: dateStr, messages: 0, bot: 0, user: 0 });
-            currentDay = new Date(currentDay.getTime() + 24 * 60 * 60 * 1000);
-          }
+          });
         }
-        
-        (messages || []).forEach(m => {
-          const dateStr = format(new Date(m.created_at), 'dd/MM', { locale: ptBR });
-          if (!dailyMap.has(dateStr)) {
-            dailyMap.set(dateStr, { date: dateStr, messages: 0, bot: 0, user: 0 });
-          }
-          const entry = dailyMap.get(dateStr)!;
-          entry.messages += 1;
-          if (m.role === 'user') entry.user += 1;
-          else entry.bot += 1;
-        });
-      }
 
-      let dailyArray = Array.from(dailyMap.values());
-      
-      // If 'all', sort chronologically as they were added dynamically
-      if (dateRange === 'all') {
-        dailyArray = dailyArray.sort((a, b) => {
-          const [da, ma] = a.date.split('/');
-          const [db, mb] = b.date.split('/');
-          const timeA = new Date(now.getFullYear(), parseInt(ma)-1, parseInt(da)).getTime();
-          const timeB = new Date(now.getFullYear(), parseInt(mb)-1, parseInt(db)).getTime();
-          return timeA - timeB;
-        });
-      }
+        let dailyArray = Array.from(dailyMap.values());
 
-      // 2. Ratings Distribution
-      const ratingsArray = Object.entries(ratingCounts)
-        .filter(([_, count]) => count > 0)
-        .map(([score, count]) => ({
-          name: `Nota ${score}`,
-          value: count
-        }));
+        // If 'all', sort chronologically as they were added dynamically
+        if (dateRange === 'all') {
+          dailyArray = dailyArray.sort((a, b) => {
+            const [da, ma] = a.date.split('/');
+            const [db, mb] = b.date.split('/');
+            const timeA = new Date(now.getFullYear(), parseInt(ma) - 1, parseInt(da)).getTime();
+            const timeB = new Date(now.getFullYear(), parseInt(mb) - 1, parseInt(db)).getTime();
+            return timeA - timeB;
+          });
+        }
+
+        // 2. Ratings Distribution
+        const ratingsArray = Object.entries(ratingCounts)
+          .filter(([_, count]) => count > 0)
+          .map(([score, count]) => ({
+            name: `Nota ${score}`,
+            value: count
+          }));
 
         setChartsData({
           dailyMessages: dailyArray,
@@ -256,13 +258,22 @@ export default function DashboardView() {
 
       } catch (err: any) {
         console.error("Error fetching dashboard data:", err);
-        setError("Não foi possível carregar os dados. Verifique a conexão.");
+        if (!isBackground) {
+          setError("Não foi possível carregar os dados. Verifique a conexão.");
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchDashboardData();
+    fetchDashboardData(false);
+
+    // Auto-refresh a cada 10 segundos para tempo real silenciado
+    const intervalId = setInterval(() => {
+      fetchDashboardData(true);
+    }, 10000);
+
+    return () => clearInterval(intervalId);
   }, [dateRange, customStart, customEnd]);
 
   if (error) {
@@ -270,7 +281,7 @@ export default function DashboardView() {
       <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-[#0b141a]">
         <div className="bg-white dark:bg-[#111b21] p-6 rounded-2xl border border-rose-200 dark:border-rose-900/30 text-center max-w-md shadow-sm">
           <p className="text-rose-600 dark:text-rose-400 font-medium mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => { setError(null); setIsLoading(true); setDateRange('today'); }}
             className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors text-sm font-medium"
           >
@@ -289,7 +300,7 @@ export default function DashboardView() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard Analítico</h1>
           <p className="text-base text-slate-500 dark:text-slate-400 mt-1">Visão geral do desempenho do assistente virtual</p>
         </div>
-        
+
         {/* Date Filter */}
         <div className="flex flex-col items-end gap-3">
           <div className="flex bg-white dark:bg-[#111b21] rounded-lg p-1 shadow-sm border border-slate-200 dark:border-slate-800">
@@ -297,11 +308,10 @@ export default function DashboardView() {
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                  dateRange === range 
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 shadow-sm' 
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${dateRange === range
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 shadow-sm'
                     : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                }`}
+                  }`}
               >
                 {range === 'today' ? 'Hoje' : range === '7days' ? '7 Dias' : range === '30days' ? '30 Dias' : range === 'all' ? 'Tudo' : 'Personalizado'}
               </button>
@@ -311,15 +321,15 @@ export default function DashboardView() {
           {/* Filtro Personalizado Inputs */}
           {dateRange === 'custom' && (
             <div className="flex items-center gap-2 animate-fadeIn bg-white dark:bg-[#111b21] p-2 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
                 className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-emerald-500 transition-colors"
               />
               <span className="text-slate-400 dark:text-slate-500 text-sm">até</span>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
                 className="bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-emerald-500 transition-colors"
@@ -328,51 +338,51 @@ export default function DashboardView() {
           )}
         </div>
       </header>
-      
+
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-6 mb-8">
-        <StatCard 
-          title="Pacientes" 
-          value={metrics.activePatients} 
+        <StatCard
+          title="Pacientes"
+          value={metrics.activePatients}
           icon={<Users className="w-6 h-6 text-blue-500" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Laudos" 
-          value={metrics.pdfDeliveries} 
+        <StatCard
+          title="Laudos"
+          value={metrics.pdfDeliveries}
           icon={<FileText className="w-6 h-6 text-emerald-500" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Mensagens" 
-          value={metrics.totalMessages} 
+        <StatCard
+          title="Mensagens"
+          value={metrics.totalMessages}
           icon={<MessageCircle className="w-6 h-6 text-purple-500" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Aguardando" 
-          value={metrics.pendingExams} 
+        <StatCard
+          title="Aguardando"
+          value={metrics.pendingExams}
           subtitle="pendentes"
           icon={<Clock3 className="w-6 h-6 text-orange-500" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Tempo Médio" 
-          value={metrics.avgTime} 
+        <StatCard
+          title="Tempo Médio"
+          value={metrics.avgTime}
           subtitle="de entrega"
           icon={<Clock className="w-6 h-6 text-indigo-500" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Avaliação" 
-          value={metrics.avgRating > 0 ? metrics.avgRating : 'N/A'} 
+        <StatCard
+          title="Avaliação"
+          value={metrics.avgRating > 0 ? metrics.avgRating : 'N/A'}
           subtitle={`${metrics.totalRatings} avaliações`}
           icon={<Star className="w-6 h-6 text-amber-400 fill-amber-400" />}
           isLoading={isLoading}
         />
-        <StatCard 
-          title="Dificuldades" 
-          value={metrics.totalErros} 
+        <StatCard
+          title="Dificuldades"
+          value={metrics.totalErros}
           subtitle="erros digitação"
           icon={<ArrowDownRight className="w-6 h-6 text-rose-500" />}
           isLoading={isLoading}
@@ -385,7 +395,7 @@ export default function DashboardView() {
         <div className="lg:col-span-2 bg-white dark:bg-[#111b21] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Volume de Interações</h3>
-            <span className="text-sm text-slate-500 flex items-center gap-1"><CalendarIcon className="w-4 h-4"/> {dateRange === 'today' ? 'Hoje (por hora)' : `Últimos ${dateRange.replace('days', ' dias')}`}</span>
+            <span className="text-sm text-slate-500 flex items-center gap-1"><CalendarIcon className="w-4 h-4" /> {dateRange === 'today' ? 'Hoje (por hora)' : `Últimos ${dateRange.replace('days', ' dias')}`}</span>
           </div>
           <div className="h-[300px] w-full">
             {isLoading ? (
@@ -397,14 +407,14 @@ export default function DashboardView() {
                 <AreaChart data={chartsData.dailyMessages} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorMessages" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} />
-                  <RechartsTooltip 
+                  <RechartsTooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                     cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
                   />
@@ -439,11 +449,11 @@ export default function DashboardView() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip 
+                  <RechartsTooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', fontSize: '14px' }}
                     itemStyle={{ color: '#111b21' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '14px' }}/>
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '14px' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -459,7 +469,7 @@ export default function DashboardView() {
             {metrics.pendingExams} aguardando
           </span>
         </div>
-        
+
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="py-8 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500"></div></div>
@@ -512,7 +522,7 @@ function StatCard({ title, value, subtitle, icon, trend, trendUp, isLoading }: S
   return (
     <div className="bg-white dark:bg-[#111b21] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
       <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors"></div>
-      
+
       <div className="flex justify-between items-start mb-3 relative z-10">
         <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
           {icon}
