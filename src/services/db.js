@@ -122,6 +122,9 @@ async function registrarEntregaPdf(numero) {
             timeTakenMs = now - data[0].createdAt;
         }
         await supabase.from('pdf_deliveries').insert([{ numero, createdAt: now, timeTakenMs }]);
+        
+        // Remove da fila de pendentes (se existir) já que o paciente acabou de pegar o exame com sucesso
+        await supabase.from('pending_results').delete().eq('numero', numero);
     } catch (err) {
         console.error('db:registrar-entrega-pdf-erro:', err.message);
     }
