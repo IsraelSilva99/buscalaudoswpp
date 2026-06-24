@@ -251,20 +251,8 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
             return;
         }
     } else if (!laudoValido) {
-        const codeAttempts = (sessao.codeAttempts || 0) + 1;
-        if (codeAttempts >= 3) {
-            await whatsapp.enviarTexto(numero, TEXTOS.ERRO_TENTATIVAS);
-            await db.bloquearContato(numero);
-        } else {
-            await db.atualizarSessao(numero, { codeAttempts });
-            await whatsapp.enviarTexto(numero, TEXTOS.CODIGO_INVALIDO);
-
-            // Se errou a primeira vez, manda a imagem de exemplo
-            if (codeAttempts === 1) {
-                await sleep(1500);
-                await whatsapp.enviarImagemUrl(numero, process.env.EXEMPLO_ATENDIMENTO_URL, '_Veja no exemplo acima onde encontrar o número de atendimento._');
-            }
-        }
+        // Falha de rede ou timeout da API do Busca Laudos (retornou null)
+        await whatsapp.enviarTexto(numero, "Ocorreu um erro temporário na busca do exame. Por favor, digite o número do seu atendimento novamente.");
         return;
     }
 
