@@ -203,7 +203,7 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
 
 async function etapaAguardandoCodigo(numero, texto, sessao) {
     const textoMinusculo = texto.toLowerCase();
-    const perdeuDoc = ['não tenho', 'nao tenho', 'esqueci', 'não possuo', 'nao possuo', 'não sei', 'nao sei', 'não recebi', 'nao recebi', 'perdi'].some(p => textoMinusculo.includes(p));
+    const perdeuDoc = ['não tenho', 'nao tenho', 'esqueci', 'não possuo', 'nao possuo', 'não sei', 'nao sei', 'não recebi', 'nao recebi', 'perdi', 'que número', 'que numero', 'onde fica', 'onde está', 'onde esta', 'qual é', 'qual e'].some(p => textoMinusculo.includes(p));
     
     if (perdeuDoc) {
         await whatsapp.enviarTexto(numero, "Compreendo! O Nº de Atendimento é obrigatório para acessar o resultado.\n\nVocê pode encontrá-lo impresso no seu protocolo de retirada. Caso tenha perdido o protocolo, por favor, entre em contato com a equipe no telefone *(11) 3278-4010*.");
@@ -213,6 +213,14 @@ async function etapaAguardandoCodigo(numero, texto, sessao) {
 
     const codigoLimpo = texto.replace(/\D/g, '');
     
+    // Se o usuário digitou exatamente 11 números, é quase certeza que ele mandou o CPF de novo por engano.
+    if (codigoLimpo.length === 11) {
+        await whatsapp.enviarTexto(numero, "Parece que você digitou seu CPF novamente. 😅\n\nAgora precisamos apenas do seu *Nº de Atendimento* (geralmente ele tem 10 números e começa com vários zeros).");
+        await sleep(1000);
+        await whatsapp.enviarImagemUrl(numero, process.env.EXEMPLO_ATENDIMENTO_URL, '_Veja no exemplo acima onde encontrar o número de atendimento._');
+        return; // Não contabiliza erro
+    }
+
     if (!codigoLimpo) {
         await whatsapp.enviarTexto(numero, TEXTOS.PEDIR_CODIGO);
         return;
