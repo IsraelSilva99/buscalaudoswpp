@@ -165,11 +165,17 @@ async function etapaAguardandoDoc(numero, texto, sessao) {
         return;
     }
 
-    const docLimpo = texto.replace(/\D/g, '');
+    let docLimpo = texto.replace(/\D/g, '');
 
     if (!docLimpo) {
         await whatsapp.enviarTexto(numero, TEXTOS.PEDIR_DOC);
         return;
+    }
+
+    // O sistema interno cadastra o PRECCP com '00' no final (total 11 dígitos)
+    // Se o paciente enviar os 9 dígitos originais, injetamos automaticamente para ele.
+    if (docLimpo.length === 9) {
+        docLimpo += '00';
     }
 
     // Consulta API BuscaLaudos
